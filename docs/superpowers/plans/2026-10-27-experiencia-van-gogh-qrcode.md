@@ -54,6 +54,14 @@
 5. **`localStorage` indisponível** (aba anônima, navegador embutido) — aceite e identificador do aparelho caem para memória e o fluxo continua. Teste na Task 9.
 6. **Cara de IA** — `inspect.mjs` com 0 FAIL em todos os estados da vitrine a 390, 768 e 1440 px, a frase da ideia passando no teste do concorrente e a crítica escrita em `docs/direcao-visual.md`. Tasks 11 e 14.
 
+## Marco 1 — protótipo Mona Lisa
+
+Primeira entrega, pedida pelo usuário em 2026-10-27: **Tasks 1–13 com o catálogo só com o estilo `mona-lisa`**, já com a direção visual (Task 11). Os outros 5 estilos e as Tasks 14–17 formam o Marco 2. O código do protótipo é o do produto, não é descartável.
+
+- Enquanto só existir `mona-lisa`, os testes que conferem o catálogo real (Task 1 "6 estilos na ordem", Task 7 `GET /api/estilos`, Task 12 contagem de cartões, Task 13 "pintar de novo") esperam só `mona-lisa`, e os que usam um estilo real (Tasks 3, 8, 12, 13) usam `mona-lisa`. No Marco 2 eles voltam ao texto das tasks.
+- Task 3: adaptador Vertex e testes unitários agora; Steps 2 e 6 (chamadas reais) quando a conta do Google Cloud existir. Até lá o protótipo roda com `PROVEDOR=falso`.
+- Task 11: a direção é feita para os 6 estilos e pausa para o ok do usuário no Step 8.
+
 ---
 
 ## Estrutura de arquivos
