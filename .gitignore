@@ -44,3 +44,8 @@ desktop.ini
 # Claude Code (worktrees e configurações locais)
 .claude/worktrees/
 .claude/settings.local.json
+
+# Tasteskill (capturas do inspetor e da vitrine)
+site/.taste-skill/inspect/
+site/.taste-skill/scenes/
+site/dist-vitrine/

@@ -1,0 +1,84 @@
+/* Direção visual: Colour chapters (tasteskill, seed 1059739941). Detalhes em docs/direcao-visual.md.
+   As telas usam só estes tokens. Cada tela é uma sala de museu com a parede de uma cor. */
+
+@font-face {
+  font-family: 'Schibsted Grotesk';
+  src: url('/fontes/schibsted-grotesk.woff2') format('woff2-variations');
+  font-weight: 400 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+:root {
+  /* Sala escura: chão da página e das telas de escolha e de erro. */
+  --bg: #191919;
+  --surface: #242424;
+  --ink: #ffffff;
+  --muted: #a3a3a3;
+  /* Latão da moldura e da plaqueta: o botão principal. */
+  --accent: #c9a24a;
+  --accent-ink: #191919;
+
+  /* Paredes de sala de museu, uma por capítulo. */
+  --field-1: #7a1f22; --field-1-ink: #ffffff; /* vermelho de galeria: início */
+  --field-2: #1f3a5f; --field-2-ink: #ffffff; /* azul-noite: foto */
+  --field-3: #1e4d3b; --field-3-ink: #ffffff; /* verde de galeria: revelação */
+  --field-4: #efeeea; --field-4-ink: #111111; /* papel da etiqueta de parede: resultado e termos */
+
+  --font-display: 'Schibsted Grotesk', system-ui, sans-serif;
+  --font-text: 'Schibsted Grotesk', system-ui, sans-serif;
+
+  /* Cinco tamanhos, no máximo. */
+  --step-small: clamp(0.8125rem, 0.79rem + 0.1vw, 0.875rem);
+  --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
+  --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
+  --step-head: clamp(2rem, 1.3rem + 3.2vw, 4rem);
+  /* "Vire uma / obra de arte": linha mais longa com 12 caracteres cabe a 390 px em 15vw. */
+  --step-display: clamp(3.25rem, 15vw, 13.5rem);
+
+  --margin: clamp(1rem, 3vw, 2.5rem);
+  --gutter: clamp(1rem, 2vw, 2rem);
+  --radius: 0px;
+  --toque: 3rem; /* altura mínima de botão: 48 px */
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.76, 0, 0.24, 1);
+  --t-press: 140ms;
+  --t-hover: 180ms;
+  --t-ui: 240ms;
+  --t-capitulo: 300ms;
+  --t-reveal: 800ms;
+  --stagger-item: 70ms;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: var(--step-body);
+  font-weight: 400;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+}
+h1, h2, h3, p, figure, ul, ol, dl, dd { margin: 0; }
+ul[class], ol[class] { padding: 0; list-style: none; }
+img, svg, canvas { display: block; max-width: 100%; }
+button, input { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+a { color: inherit; }
+::selection { background: var(--accent); color: var(--accent-ink); }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+
+h1, h2, h3 { font-family: var(--font-display); font-weight: 800; letter-spacing: -0.05em; line-height: 0.88; text-wrap: balance; }
+p { max-width: 62ch; text-wrap: pretty; }
+.nums { font-variant-numeric: tabular-nums; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; animation-iteration-count: 1 !important; transition-duration: 1ms !important; }
+}

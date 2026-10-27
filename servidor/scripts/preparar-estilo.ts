@@ -27,7 +27,7 @@ const base = () => {
 }
 
 const saidas = [
-  { arquivo: 'miniatura.jpg', lado: 480, qualidade: 80 },
+  { arquivo: 'miniatura.jpg', lado: 1080, qualidade: 80 },
   { arquivo: 'referencia.jpg', lado: 1024, qualidade: 85 },
 ]
 for (const { arquivo, lado, qualidade } of saidas) {
