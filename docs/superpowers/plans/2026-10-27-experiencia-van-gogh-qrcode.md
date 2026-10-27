@@ -14,7 +14,7 @@
 ## Global Constraints
 
 - Interface toda em português do Brasil; mensagens de erro exatamente como na tabela da seção 7 da spec.
-- Chave de API de IA só no servidor (variável de ambiente); nunca no site.
+- Credenciais da IA (login OAuth do Google Cloud) só no servidor; nunca no site nem no repositório.
 - `dados/acervo/` nunca exposto por HTTP (o contêiner do Caddy não monta essa pasta).
 - O IP do visitante não é gravado no acervo.
 - Foto no site: lado maior ≤ 1600 px, JPEG qualidade 0,85, rotação EXIF aplicada.
@@ -42,6 +42,7 @@
 11. **Direção visual pelo tasteskill (`design-taste-frontend`)**, para o site não ter cara de página gerada por IA. O site é tratado como *página* no sentido do skill (pública, lida no celular), não como tela de app; as telas do fluxo fazem o papel das seções, e a largura que manda é 390 px (768 e 1440 precisam funcionar para quem abre num computador). A direção é sorteada e escolhida na Task 11, conferida por `lint.mjs` e `inspect.mjs` nas Tasks 12–13 e fechada com olhar e movimento na Task 14. A "coisa viva" que o skill pede é a própria experiência (foto → pintura); não inventar outra.
 12. **Vitrine de telas** (`site/vitrine.html?tela=…`): monta cada tela com estado fixo, para o inspetor fotografar todas sem passar pelo fluxo. Só entra no build com `--mode vitrine`; nunca em `site/dist`.
 13. **Fontes e imagens servidas pelo próprio site**, sem CDN em tempo de execução (a internet do evento é instável).
+14. **Provedor: Google Cloud Vertex AI com login OAuth do usuário** (sem chave de API, sem conta de serviço), custeado pelo crédito de avaliação de US$ 300; o comparativo escolhe entre Nano Banana 2.1, 2 e Pro. Plano B, se o crédito não liberar os modelos de imagem: fal.ai.
 
 ## Review Focus
 
@@ -125,7 +126,7 @@ docs/
   export function carregarCatalogo(dir: string, avisar: (msg: string) => void): Catalogo
   ```
 
-- [ ] **Step 1: Criar o esqueleto do servidor.** `package.json` com `"type": "module"`, scripts `dev` (`tsx watch src/index.ts`), `build` (`tsc`), `start` (`node dist/index.js`), `test` (`vitest run`); dependências `fastify`, `@fastify/multipart`, `sharp`; dev `typescript`, `tsx`, `vitest`, `@types/node`. `tsconfig` strict, `module`/`moduleResolution` `NodeNext`, `outDir: dist`, `rootDir: .`. O `.gitignore` da raiz já existe; conferir que cobre `node_modules/`, `dist/`, `dados/`, `.env`, `servidor/comparativo/`, `site/e2e/.acervo/`, `site/test-results/`, `site/playwright-report/`.
+- [ ] **Step 1: Criar o esqueleto do servidor.** `package.json` com `"type": "module"`, scripts `dev` (`tsx watch src/index.ts`), `build` (`tsc`), `start` (`node dist/index.js`), `test` (`vitest run`); dependências `fastify`, `@fastify/multipart`, `sharp`; dev `typescript`, `tsx`, `vitest`, `@types/node`. `tsconfig` strict, `module`/`moduleResolution` `NodeNext`, `outDir: dist`, `rootDir: .`. O `.gitignore` da raiz já existe; conferir que cobre `node_modules/`, `dist/`, `dados/`, `.env`, `*application_default_credentials*.json`, `deploy/adc-vazio.json`, `servidor/comparativo/`, `site/e2e/.acervo/`, `site/test-results/`, `site/playwright-report/`.
 
 - [ ] **Step 2: Escrever os testes do catálogo** (cada teste monta um diretório temporário com `fs.mkdtemp`):
 
@@ -191,13 +192,13 @@ it('o catálogo real tem os 4 quadros na ordem', () => {
   export function criarProvedor(config: Config): Provedor   // já embrulhado com comNovaTentativa
   // config.ts
   export interface Config {
-    porta: number; provedor: string; chaves: Record<string, string | undefined>; eventoAtivo: boolean
+    porta: number; provedor: string; google: { projeto?: string; local: string; modelo?: string }; eventoAtivo: boolean
     limiteAparelho: { max: number; janelaMs: number }; limiteIp: { max: number; janelaMs: number }
     tetoDiario: number; concorrencia: number; tempoMaximoMs: number; estilosDir: string; acervoDir: string
   }
   export function lerConfig(env: Record<string, string | undefined>): Config
   ```
-  Variáveis: `PORTA`=3000, `PROVEDOR`=`falso`, `EVENTO_ATIVO`=`false`, `LIMITE_APARELHO`=5, `JANELA_APARELHO_MIN`=10, `LIMITE_IP`=60, `JANELA_IP_MIN`=60, `TETO_DIARIO`=1000, `CONCORRENCIA`=5, `TEMPO_MAXIMO_S`=90, `ESTILOS_DIR`=`../estilos`, `ACERVO_DIR`=`../dados/acervo`; chaves `GEMINI_API_KEY`, `FAL_KEY`, `OPENAI_API_KEY`.
+  Variáveis: `PORTA`=3000, `PROVEDOR`=`falso`, `EVENTO_ATIVO`=`false`, `LIMITE_APARELHO`=5, `JANELA_APARELHO_MIN`=10, `LIMITE_IP`=60, `JANELA_IP_MIN`=60, `TETO_DIARIO`=1000, `CONCORRENCIA`=5, `TEMPO_MAXIMO_S`=90, `ESTILOS_DIR`=`../estilos`, `ACERVO_DIR`=`../dados/acervo`; `GOOGLE_CLOUD_PROJECT` (sem padrão), `GOOGLE_CLOUD_LOCATION`=`global`, `MODELO_IMAGEM` (sem padrão). Com `PROVEDOR=vertex`, `GOOGLE_CLOUD_PROJECT` e `MODELO_IMAGEM` são obrigatórias. As credenciais não passam pela config: o SDK as lê do login OAuth (Application Default Credentials).
 
 - [ ] **Step 1: Escrever os testes:**
 
@@ -206,6 +207,7 @@ it('o catálogo real tem os 4 quadros na ordem', () => {
 it('usa os padrões', () => { const c = lerConfig({}); expect(c).toMatchObject({ porta: 3000, provedor: 'falso', eventoAtivo: false, tetoDiario: 1000, concorrencia: 5, tempoMaximoMs: 90_000 }); expect(c.limiteAparelho).toEqual({ max: 5, janelaMs: 600_000 }); expect(c.limiteIp).toEqual({ max: 60, janelaMs: 3_600_000 }) })
 it('liga o evento só com "true"', () => { expect(lerConfig({ EVENTO_ATIVO: 'true' }).eventoAtivo).toBe(true) })
 it('recusa número inválido citando a variável', () => { expect(() => lerConfig({ TETO_DIARIO: 'abc' })).toThrow(/TETO_DIARIO/) })
+it('vertex exige projeto e modelo', () => { expect(() => lerConfig({ PROVEDOR: 'vertex', MODELO_IMAGEM: 'x' })).toThrow(/GOOGLE_CLOUD_PROJECT/); expect(() => lerConfig({ PROVEDOR: 'vertex', GOOGLE_CLOUD_PROJECT: 'p' })).toThrow(/MODELO_IMAGEM/) })
 // provedores.test.ts
 it('montarPrompt junta o prompt do estilo com a instrução fixa', () => { const p = montarPrompt(estilo, false); expect(p).toContain(estilo.prompt); expect(p).toContain('recognizable'); expect(p).not.toContain('second image') })
 it('montarPrompt menciona a referência quando há', () => { expect(montarPrompt(estilo, true)).toContain('second image') })
@@ -227,51 +229,47 @@ it('criarProvedor recusa provedor desconhecido', () => { expect(() => criarProve
 
 ---
 
-### Task 3: Adaptadores candidatos + teste comparativo (⏸ decisão do usuário)
+### Task 3: Adaptador Vertex AI (login OAuth) + comparativo entre modelos do Google (⏸ decisão do usuário)
 
-Pode rodar em paralelo às Tasks 4–14, que usam o provedor `falso`. Precisa do usuário: chaves de API dos candidatos e ~10 fotos reais de pessoas que autorizaram o teste.
+Pode rodar em paralelo às Tasks 4–14, que usam o provedor `falso`. Precisa do usuário: Gmail pessoal com a avaliação gratuita do Google Cloud (US$ 300) ativada, um projeto com a API do Vertex AI habilitada, a Google Cloud CLI instalada e o login feito com `gcloud auth application-default login`; ~10 fotos reais de pessoas que autorizaram o teste.
 
 **Files:**
-- Create: `servidor/src/provedores/{http.ts,gemini.ts,fal-kontext.ts,openai.ts}`, `servidor/scripts/comparativo.ts`
-- Modify: `servidor/src/provedores/index.ts` (registrar candidatos), `servidor/package.json` (SDKs + script `comparativo`)
-- Test: `servidor/test/adaptadores.test.ts`
+- Create: `servidor/src/provedores/{http.ts,vertex.ts}`, `servidor/scripts/teste-vertex.ts`, `servidor/scripts/comparativo.ts`
+- Modify: `servidor/src/provedores/index.ts` (registrar `vertex`), `servidor/package.json` (`@google/genai` + scripts `teste-vertex` e `comparativo`)
+- Test: `servidor/test/vertex.test.ts`
 
 **Interfaces:**
-- Consumes: `Provedor`, `ErroRecusa`, `ErroTemporario`, `montarPrompt`, `carregarCatalogo`.
+- Consumes: `Provedor`, `ErroRecusa`, `ErroTemporario`, `montarPrompt`, `carregarCatalogo`, `Config.google`.
 - Produces:
   ```ts
-  export function classificarStatus(status: number, mensagem: string): Error   // 408, 429, 5xx → ErroTemporario; demais → Error
-  export function criarProvedorGemini(chave: string, modelo?: string): Provedor        // padrão 'gemini-2.5-flash-image'
-  export function criarProvedorFalKontext(chave: string, modelo?: string): Provedor    // padrão 'fal-ai/flux-pro/kontext'
-  export function criarProvedorOpenAI(chave: string, modelo?: string): Provedor        // padrão 'gpt-image-1'
-  export function interpretarGemini(resposta: unknown): Buffer      // sem imagem / bloqueio de segurança → ErroRecusa
-  export function interpretarFalKontext(resposta: unknown): string   // URL da imagem; has_nsfw_concepts → ErroRecusa
-  export function interpretarOpenAI(resposta: unknown): Buffer      // data[0].b64_json
+  export function classificarStatus(status: number, mensagem: string): Error
+  // 408, 429, 5xx → ErroTemporario; 401/403 → Error('Credenciais do Google inválidas ou expiradas: refaça o login OAuth'); demais → Error
+  export function criarProvedorVertex(o: { projeto: string; local: string; modelo: string }): Provedor   // nome 'vertex', modelo = o.modelo
+  export function interpretarVertex(resposta: unknown): Buffer   // 1ª parte com imagem inline; bloqueio de segurança ou só texto → ErroRecusa
   ```
-  `PROVEDOR` aceita `gemini`, `fal-kontext`, `openai`, `falso`.
+  `PROVEDOR` aceita `vertex` e `falso`. O SDK `@google/genai` é criado com `vertexai: true`, `project` e `location`, e lê as credenciais do login OAuth (Application Default Credentials) — nenhuma chave no código ou no `.env`.
 
-- [ ] **Step 1: Conferir a documentação atual** de cada provedor (SDKs `@google/genai`, `@fal-ai/client`, `openai`), confirmando ids de modelo, formato de entrada de imagem e campos de resposta. Se houver versão mais nova e compatível, incluí-la como candidata. Gemini e OpenAI recebem também `referencia.jpg` como segunda imagem; FLUX Kontext só o prompt.
+- [ ] **Step 1: Conferir a documentação atual do Vertex AI** para os modelos de imagem Gemini: ids de Nano Banana 2.1, 2 e Pro no Vertex, região suportada (`global` ou outra), formato da resposta e a configuração do `@google/genai` com Application Default Credentials.
 
-- [ ] **Step 2: Escrever os testes com respostas de exemplo** (montadas a partir da documentação conferida):
+- [ ] **Step 2: Chamada de teste (verificação de acesso, antes de qualquer outra coisa).** `servidor/scripts/teste-vertex.ts` envia uma foto de teste com o estilo `noite-estrelada` para cada um dos 3 modelos e salva as imagens em `servidor/comparativo/teste/`. Run: `npm --prefix servidor run teste-vertex`. Expected: 3 imagens salvas e, no Google Cloud (Faturamento → Créditos), o valor descontado do crédito da avaliação. Se algum modelo for negado (permissão, modelo indisponível na avaliação, cobrança fora do crédito): **parar e avisar o usuário** — o plano B (fal.ai) vira uma nova tarefa.
+
+- [ ] **Step 3: Escrever os testes** (respostas de exemplo montadas a partir da documentação conferida):
 
 ```ts
 it('classificarStatus: 429 e 503 são temporários, 400 não', () => { expect(classificarStatus(429, '')).toBeInstanceOf(ErroTemporario); expect(classificarStatus(503, '')).toBeInstanceOf(ErroTemporario); expect(classificarStatus(400, '')).not.toBeInstanceOf(ErroTemporario) })
-it('Gemini: extrai a imagem inline', () => { expect(interpretarGemini(respostaComImagem)).toEqual(Buffer.from('img')) })
-it('Gemini: bloqueio de segurança vira recusa', () => { expect(() => interpretarGemini(respostaBloqueada)).toThrow(ErroRecusa) })
-it('Fal: devolve a URL da primeira imagem', () => { expect(interpretarFalKontext(resp)).toBe('https://…/a.jpg') })
-it('Fal: conteúdo sinalizado vira recusa', () => { /* has_nsfw_concepts: [true] */ })
-it('OpenAI: decodifica b64_json', () => { /* … */ })
+it('classificarStatus: 401/403 pede novo login e não repete', () => { const e = classificarStatus(401, ''); expect(e).not.toBeInstanceOf(ErroTemporario); expect(e.message).toMatch(/refaça o login OAuth/) })
+it('extrai a imagem inline', () => { expect(interpretarVertex(respostaComImagem)).toEqual(Buffer.from('img')) })
+it('bloqueio de segurança vira recusa', () => { expect(() => interpretarVertex(respostaBloqueada)).toThrow(ErroRecusa) })
+it('resposta só com texto vira recusa', () => { expect(() => interpretarVertex(respostaSoTexto)).toThrow(ErroRecusa) })
 ```
 
-- [ ] **Step 3: Rodar e ver falhar**, implementar os três adaptadores (erros de moderação → `ErroRecusa`; status HTTP via `classificarStatus`; falha de rede → `ErroTemporario`), **rodar e ver passar.** Run: `npm --prefix servidor test`.
+- [ ] **Step 4: Rodar e ver falhar**, implementar `criarProvedorVertex` (foto + `referencia.jpg` como segunda imagem quando houver, com `montarPrompt(estilo, comReferencia)`; falha de rede → `ErroTemporario`; status HTTP via `classificarStatus`) e registrá-lo em `criarProvedor`, **rodar e ver passar.** Run: `npm --prefix servidor test`.
 
-- [ ] **Step 4: Implementar `servidor/scripts/comparativo.ts`** (`npm --prefix servidor run comparativo -- gemini fal-kontext openai`): lê `servidor/comparativo/fotos/*.jpg` (passadas por `prepararFoto` se a Task 6 já existir; senão, redimensionadas a 1600 px), roda cada provedor × estilo × foto com no máximo 3 chamadas simultâneas, grava em `servidor/comparativo/resultado/<provedor>/<estilo>/<foto>.jpg` e gera `servidor/comparativo/resultado/index.html`: uma linha por foto × estilo, colunas "original" + um provedor por coluna, rodapé com tempo médio, falhas e recusas por provedor. Ignora provedores sem chave no ambiente, avisando.
+- [ ] **Step 5: Implementar `servidor/scripts/comparativo.ts`** (`npm --prefix servidor run comparativo -- <modelo1> <modelo2> <modelo3>`): lê `servidor/comparativo/fotos/*.jpg` (passadas por `prepararFoto` se a Task 6 já existir; senão, redimensionadas a 1600 px), roda cada modelo × estilo × foto com no máximo 3 chamadas simultâneas, grava em `servidor/comparativo/resultado/<modelo>/<estilo>/<foto>.jpg` e gera `servidor/comparativo/resultado/index.html`: uma linha por foto × estilo, colunas "original" + um modelo por coluna, rodapé com tempo médio, falhas e recusas por modelo.
 
-- [ ] **Step 5: Rodar o comparativo com o usuário.** Antes, informar quantas chamadas serão feitas (10 fotos × 4 estilos × N provedores) e pedir ok. Abrir o `index.html`; o usuário escolhe o provedor. Registrar escolha, tempo médio e custo por foto (consultado no painel do provedor) em `docs/decisoes.md`.
+- [ ] **Step 6: Rodar o comparativo com o usuário.** Antes, informar o número de chamadas (10 fotos × 4 estilos × 3 modelos = 120, cerca de US$ 10 do crédito) e pedir ok. Abrir o `index.html`; o usuário escolhe o modelo. Registrar em `docs/decisoes.md`: modelo, tempo médio, custo por foto e a estimativa para 2.000 fotos comparada ao saldo do crédito.
 
-- [ ] **Step 6: Manter só o escolhido.** Remover os adaptadores, testes e SDKs não escolhidos; `criarProvedor` aceita apenas o escolhido e `falso`. Run: `npm --prefix servidor test` — Expected: PASS.
-
-- [ ] **Step 7: Commit.** `git commit -m "feat(servidor): adaptador do provedor escolhido no comparativo"`
+- [ ] **Step 7: Commit.** `git commit -m "feat(servidor): provedor Vertex AI com login OAuth e comparativo"`
 
 ---
 
@@ -793,7 +791,7 @@ Passos 7 a 10 do roteiro do skill sobre o site inteiro, já com todas as telas. 
 
 **Interfaces:**
 - Consumes: `npm run build` e `npm start` do servidor; `npm run build` do site (gera `site/dist`).
-- Produces: `docker compose -f deploy/docker-compose.yml up -d --build` sobe tudo; `.env` (cópia de `.env.exemplo`) com `DOMINIO`, `PROVEDOR`, chave do provedor e as variáveis da Task 2.
+- Produces: `docker compose -f deploy/docker-compose.yml up -d --build` sobe tudo; `.env` (cópia de `.env.exemplo`) com `DOMINIO`, `PROVEDOR=vertex`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION`, `MODELO_IMAGEM`, `ADC_ARQUIVO` (caminho no host do arquivo de login OAuth) e as variáveis da Task 2.
 
 - [ ] **Step 1: Escrever os arquivos.**
   - `pintor.Dockerfile`: multi-stage Node 22 (build com `tsc`; imagem final só com `dist`, `node_modules` de produção), usuário `node`, `ESTILOS_DIR=/app/estilos`, `ACERVO_DIR=/dados/acervo`, `PORTA=3000`. **Sem** `ports` publicados no compose.
@@ -813,12 +811,12 @@ Passos 7 a 10 do roteiro do skill sobre o site inteiro, já com todas as telas. 
       }
     }
     ```
-  - `docker-compose.yml`: serviços `pintor` (volumes `../estilos:/app/estilos:ro` e `../dados/acervo:/dados/acervo`, `env_file: .env`, `restart: unless-stopped`) e `caddy` (portas 80/443, volumes nomeados para `/data` e `/config`, **sem** volume do acervo).
+  - `docker-compose.yml`: serviços `pintor` (volumes `../estilos:/app/estilos:ro`, `../dados/acervo:/dados/acervo` e `${ADC_ARQUIVO}:/segredos/adc.json:ro`; `GOOGLE_APPLICATION_CREDENTIALS=/segredos/adc.json`; `env_file: .env`; `restart: unless-stopped`) e `caddy` (portas 80/443, volumes nomeados para `/data` e `/config`, **sem** volume do acervo).
   - `.env.exemplo` com todas as variáveis e comentários em português; `EVENTO_ATIVO=false`.
 
 - [ ] **Step 2: Validar.** Run: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env.exemplo config` — Expected: sem erros, e a saída do serviço `caddy` não contém `acervo`. Se o Docker não estiver disponível nesta máquina, fazer a validação na VPS na Task 17.
 
-- [ ] **Step 3: Subir localmente (se houver Docker).** `DOMINIO=localhost`, `EVENTO_ATIVO=true`, `PROVEDOR=falso`; Run: `curl -k https://localhost/api/saude` — Expected: `"ok":true`; abrir `https://localhost` e fazer uma pintura completa.
+- [ ] **Step 3: Subir localmente (se houver Docker).** `DOMINIO=localhost`, `EVENTO_ATIVO=true`, `PROVEDOR=falso`, `ADC_ARQUIVO=./adc-vazio.json` (arquivo vazio criado em `deploy/`, ignorado pelo git); Run: `curl -k https://localhost/api/saude` — Expected: `"ok":true`; abrir `https://localhost` e fazer uma pintura completa.
 
 - [ ] **Step 4: Commit.** `git commit -m "feat(deploy): docker compose com caddy e pintor"`
 
@@ -856,7 +854,7 @@ Sem código novo; precisa dos insumos da spec seção 12.
 
 - [ ] **Step 1: Preencher `site/src/config.ts`** com escola, e-mail e assinatura fornecidos pelo usuário; commit.
 
-- [ ] **Step 2: Publicar na VPS** (com o usuário, via SSH): apontar o subdomínio, clonar o repositório, `cp deploy/.env.exemplo deploy/.env` e preencher, `mkdir -p dados/acervo && sudo chown 1000:1000 dados/acervo`, `docker compose -f deploy/docker-compose.yml up -d --build`. Se as portas 80/443 já estiverem em uso, trocar o Caddy por um bloco no servidor existente com o mesmo roteamento. Verificar: `curl https://<subdominio>/api/saude` → `"ok":true`.
+- [ ] **Step 2: Publicar na VPS** (com o usuário, via SSH): apontar o subdomínio, clonar o repositório, `cp deploy/.env.exemplo deploy/.env` e preencher, `mkdir -p dados/acervo && sudo chown 1000:1000 dados/acervo`, login OAuth na VPS com `gcloud auth application-default login --no-launch-browser` (ou copiar o arquivo gerado no PC) e apontar `ADC_ARQUIVO` para ele, deixando-o fora do repositório e legível só pelo dono e pelo usuário do contêiner (uid 1000), `docker compose -f deploy/docker-compose.yml up -d --build`. Se as portas 80/443 já estiverem em uso, trocar o Caddy por um bloco no servidor existente com o mesmo roteamento. Verificar: `curl https://<subdominio>/api/saude` → `"ok":true`.
 
 - [ ] **Step 3: Testes em celulares reais** com `EVENTO_ATIVO=true` e o provedor real: iPhone (Safari), Android (Chrome), QR lido pela câmera nativa, pelo Instagram e pelo WhatsApp, um celular antigo, internet lenta (modo 3G ou rede ruim). Registrar em `docs/validacao-campo.md`: aparelho, navegador, tempo da pintura, problemas (inclusive visuais: fonte que não carregou, imagem lenta, texto cortado).
 

@@ -75,7 +75,7 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
 ### 4.2 Serviço "pintor" (backend)
 
 - Node.js 22 LTS + TypeScript, Fastify, `@fastify/multipart`, `sharp` para validar e reencodar imagens.
-- A chave da API de IA fica **apenas** no servidor (variável de ambiente).
+- As credenciais da IA (login OAuth do Google Cloud) ficam **apenas** no servidor.
 - Endpoints:
 
 | Método | Rota | Função |
@@ -91,16 +91,15 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
   - Sucesso: `200`, corpo `image/jpeg` (a pintura), cabeçalho `X-Codigo-Obra`.
   - Erro: JSON `{ erro, mensagem }` (códigos na seção 7).
 
-### 4.3 Adaptador de provedor de IA
+### 4.3 Provedor de IA
 
 - Interface única: `pintar(foto: Buffer, estilo: Estilo): Promise<Buffer>`.
-- Provedor escolhido por variável de ambiente `PROVEDOR`. Sempre existe o provedor **`falso`** (devolve uma imagem fixa), usado em testes e no desenvolvimento.
-- Candidatos iniciais para o teste comparativo (versões mais recentes disponíveis na data do teste também podem entrar):
-  - Google Gemini 2.5 Flash Image ("Nano Banana");
-  - FLUX.1 Kontext (via fal.ai ou Replicate);
-  - OpenAI gpt-image.
-- O prompt enviado combina o prompt do estilo com uma instrução fixa de preservar rosto, pose e composição da foto. Se o estilo tiver `referencia.jpg` e o provedor aceitar imagem de referência, ela também é enviada.
-- Depois do teste comparativo, ficam no código apenas o provedor escolhido e o `falso`.
+- Provedor escolhido por variável de ambiente `PROVEDOR`: `vertex` (produção) ou **`falso`** (devolve uma imagem fixa), usado em testes e no desenvolvimento.
+- **Provedor: Google Cloud Vertex AI**, com os modelos de imagem Gemini ("Nano Banana"). O custo sai do **crédito da avaliação gratuita do Google Cloud** (US$ 300 por 90 dias) numa conta criada com um Gmail pessoal do usuário. Enquanto a conta não for convertida em paga, o Google não cobra nada além do crédito.
+- **Autenticação só por login OAuth** com a conta Google do usuário (Application Default Credentials obtidas com `gcloud auth application-default login`), no comparativo e no servidor. Sem chave de API e sem conta de serviço.
+- O teste comparativo escolhe o modelo entre Nano Banana 2.1, Nano Banana 2 e Nano Banana Pro (ids conferidos no Vertex AI na data do teste). Estimativa para 2.000 fotos: ~US$ 67, ~US$ 134 e ~US$ 268, todos dentro do crédito (o Pro fica no limite). O modelo escolhido fica na variável `MODELO_IMAGEM`.
+- Antes de tudo, uma **chamada de teste** confirma que o crédito da avaliação libera o modelo de imagem. Se não liberar, o plano B é a fal.ai (paga por foto), trocando só o adaptador.
+- O prompt enviado combina o prompt do estilo com uma instrução fixa de preservar rosto, pose e composição da foto. Se o estilo tiver `referencia.jpg`, ela também é enviada como imagem de referência.
 
 ### 4.4 Infraestrutura
 
@@ -110,7 +109,8 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
 - Volumes:
   - `estilos/` montado somente leitura no pintor;
   - `dados/acervo/` montado com escrita no pintor e **não** exposto pelo Caddy;
-  - dados do Caddy (certificados).
+  - dados do Caddy (certificados);
+  - o arquivo de credenciais do login OAuth (`application_default_credentials.json`) montado somente leitura no pintor, guardado fora do repositório e com permissão restrita.
 - Configuração em `.env` (com `.env.exemplo` versionado, sem segredos).
 - Se a VPS já tiver Nginx ou outro serviço ocupando as portas 80/443, o Caddy é substituído por um bloco de configuração no servidor existente.
 
@@ -188,7 +188,7 @@ Valores padrão, todos ajustáveis no `.env`:
 | Fila | 5 chamadas simultâneas ao provedor | Os demais esperam na fila; a revelação cobre a espera. |
 | Tempo máximo | 90 s por pintura (incluindo fila e nova tentativa) | Passou disso, responde `TEMPO_ESGOTADO`. |
 
-Os limites por aparelho e por IP contam pedidos que passaram da validação e entraram na fila (cada "Tentar de novo" conta). Ficam em memória e zeram ao reiniciar, o que é aceitável. O teto diário usa um contador em memória, iniciado pela contagem de pastas do dia ao subir o serviço, que soma as pinturas gravadas **e as em andamento**; assim pedidos simultâneos não ultrapassam o teto. Recomenda-se também configurar limite de gasto no painel do provedor.
+Os limites por aparelho e por IP contam pedidos que passaram da validação e entraram na fila (cada "Tentar de novo" conta). Ficam em memória e zeram ao reiniciar, o que é aceitável. O teto diário usa um contador em memória, iniciado pela contagem de pastas do dia ao subir o serviço, que soma as pinturas gravadas **e as em andamento**; assim pedidos simultâneos não ultrapassam o teto. Na avaliação gratuita o gasto já fica limitado ao crédito; se a conta virar paga, configurar um alerta de orçamento no Google Cloud.
 
 ### 6.4 Backup
 
@@ -214,7 +214,7 @@ Falhas de rede do lado do celular (sem resposta, envio interrompido) mostram "Pa
 
 ## 8. Testes
 
-1. **Teste comparativo de provedores** (primeira tarefa da implementação): 10 fotos reais × 4 quadros × 2 ou 3 provedores, num painel lado a lado. O usuário escolhe visualmente; registram-se tempo médio e custo por foto.
+1. **Teste comparativo de modelos** (primeira tarefa da implementação): uma chamada de teste confirma que o crédito da avaliação cobre o modelo de imagem; depois, 10 fotos reais × 4 quadros × 3 modelos do Google, num painel lado a lado. O usuário escolhe visualmente; registram-se tempo médio e custo por foto.
 2. **Automáticos do servidor** (Vitest, com provedor `falso`): leitura do catálogo (incluindo estilo inativo e pasta inválida), validação da foto, interruptor de evento, limites por aparelho e IP, teto diário, fila, nova tentativa automática, gravação do acervo (só no sucesso, estrutura de pastas, `info.json`), geração do código da obra.
 3. **Automáticos do site** (Vitest): preparo da foto (rotação, redimensionamento, reencode) e composição da moldura.
 4. **Fluxo completo** (Playwright, emulando iPhone e Android, com provedor `falso`): aceite → quadro → foto → revelação → resultado → salvar/compartilhar, mais os caminhos de erro e "Tentar de novo".
@@ -227,7 +227,7 @@ Falhas de rede do lado do celular (sem resposta, envio interrompido) mostram "Pa
 - Página `/termos` com rascunho dos termos de uso de imagem.
 - Script de backup do acervo.
 - QR code em alta resolução para impressão (SVG e PNG), com o endereço curto para imprimir abaixo.
-- Checklist do dia do evento: ligar o interruptor de evento, conferir `/api/saude`, conferir créditos e limite de gasto no provedor, roteador 4G no estande, cartaz com instruções ("1. Aponte a câmera · 2. Escolha o quadro · 3. Sorria"), backup ao fim de cada dia, desligar o interruptor depois do evento.
+- Checklist do dia do evento: ligar o interruptor de evento, conferir `/api/saude`, conferir saldo e validade do crédito no Google Cloud, roteador 4G no estande, cartaz com instruções ("1. Aponte a câmera · 2. Escolha o quadro · 3. Sorria"), backup ao fim de cada dia, desligar o interruptor depois do evento.
 
 ## 10. Estrutura do repositório
 
@@ -246,12 +246,14 @@ docs/        specs, rascunho dos termos, checklist do evento
 - **Qualidade da IA**: o rosto pode ficar irreconhecível ou o estilo fraco. Mitigação: teste comparativo antes de construir o resto.
 - **Recusas do filtro de conteúdo** do provedor: tratadas com mensagem amigável.
 - **Navegadores embutidos** podem ignorar `capture` e abrir a galeria: aceito.
-- **Custo**: teto diário, limites, interruptor de evento e limite de gasto no provedor.
+- **Custo**: teto diário, limites, interruptor de evento e o próprio limite do crédito da avaliação.
+- **Crédito da avaliação do Google Cloud**: pode não liberar o modelo de imagem (plano B: fal.ai) e expira em 90 dias; eventos futuros vão precisar de conta paga ou de novos créditos.
+- **Login OAuth no servidor**: o arquivo de credenciais dá acesso ao Google Cloud do usuário. Fica fora do repositório, com permissão restrita, e o acesso pode ser revogado na conta Google a qualquer momento. Se o login expirar ou for revogado, a pintura falha com `IA_INDISPONIVEL` e o log pede um novo login.
 
 ## 12. Insumos a fornecer pelo usuário
 
 - Subdomínio a usar e acesso SSH à VPS (e se as portas 80/443 já estão em uso).
-- Conta e chave de API do provedor escolhido no teste comparativo.
+- Gmail pessoal com a avaliação gratuita do Google Cloud ativada, um projeto com a API do Vertex AI habilitada e o login OAuth feito (`gcloud auth application-default login`).
 - Nome da escola e e-mail de contato para os termos.
 - Texto da assinatura da moldura (@perfil ou #hashtag).
 - Revisão dos termos pela escola.

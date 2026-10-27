@@ -7,6 +7,9 @@ dist/
 .env
 .env.*
 !.env.exemplo
+# Login OAuth do Google Cloud (Application Default Credentials)
+*application_default_credentials*.json
+deploy/adc-vazio.json
 
 # Dados gerados em execução (acervo de fotos e backups)
 dados/
