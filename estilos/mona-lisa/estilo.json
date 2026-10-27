@@ -1,0 +1,8 @@
+{
+  "nome": "Mona Lisa",
+  "legenda": "Leonardo da Vinci",
+  "prompt": "Repaint this photo as a Leonardo da Vinci Renaissance oil portrait in the style of the Mona Lisa (1503–1519): sfumato with soft smoky transitions between light and shadow, warm muted browns, olive greens and amber tones, hazy atmospheric landscape with winding paths and water in the background, aged varnish with fine craquelure.",
+  "frases": ["Esfumando as sombras…", "Pintando a paisagem ao fundo…", "Suavizando a luz…", "Envelhecendo o verniz…"],
+  "ordem": 6,
+  "ativo": true
+}
