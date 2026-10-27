@@ -99,7 +99,7 @@ Os textos marcados **[fixo]** vêm das Tasks 12–13, dos `estilo.json` ou da se
 - Dica no iPhone: "Toque e segure a imagem para salvar" **[fixo]**
 
 **Erro** (sala escura)
-- Título: "A pintura parou no meio" **[novo]**
+- Título: "A pintura parou no meio" **[novo]**; com o evento desligado, "Experiência pausada" **[novo]**, com a obra escolhida à vista
 - Mensagem: a da seção 7 da spec para o código do erro **[fixo]**
 - Botões: "Tentar de novo" **[fixo]** e "Tirar outra foto" **[novo]**; "Escolher outra obra" **[novo]** (para `ESTILO_INVALIDO`); "Voltar ao início" **[novo]** (para `ACEITE_AUSENTE`)
 

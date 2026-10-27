@@ -151,6 +151,68 @@ ul.parede { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap
   .foto-obra img { max-height: calc(100svh - 2 * var(--margin) - 4rem); }
 }
 
+/* ---------- revelação ---------- */
+.tela-revelacao { display: grid; grid-template-rows: auto minmax(0, 1fr); gap: 1.25rem; height: 100svh; min-height: 34rem; }
+.revelacao-texto { display: grid; gap: 0.75rem; }
+.revelacao-frase { font-size: var(--step-lead); font-weight: 600; line-height: 1.2; min-height: 2.4em; }
+.revelacao-quadro { min-height: 0; display: grid; }
+.revelacao-quadro canvas { width: 100%; height: 100%; min-height: 0; object-fit: cover; }
+@media (min-width: 64rem) {
+  .tela-revelacao { grid-template-columns: 5fr 7fr; grid-template-rows: minmax(0, 1fr); column-gap: var(--gutter); }
+  .revelacao-texto { align-content: start; }
+}
+
+/* ---------- resultado: a obra diante do disco ---------- */
+.tela-resultado { gap: 1.25rem; }
+.resultado-disco { position: relative; display: grid; place-items: end center; width: 100%; aspect-ratio: 1; max-height: 58svh; margin-inline: auto; }
+.disco { position: absolute; inset: 6% 7% 0; border-radius: 50%; background: var(--field-3); }
+.resultado-disco img { position: relative; max-width: 64%; max-height: 100%; width: auto; height: auto; object-fit: contain; }
+.resultado-texto { display: grid; gap: 1rem; }
+.opcoes { display: flex; flex-wrap: wrap; gap: 0.25rem 1.5rem; }
+.opcao { min-height: 2.75rem; font-size: var(--step-lead); font-weight: 800; letter-spacing: -0.03em; color: #5c5c5c; transition: color var(--t-hover) var(--ease-out); }
+.opcao[aria-pressed='true'] { color: var(--field-4-ink); }
+.opcao:hover { color: var(--field-4-ink); }
+.etiqueta { display: grid; gap: 0.1rem; font-size: var(--step-small); font-weight: 400; line-height: 1.45; }
+.etiqueta-titulo { font-size: var(--step-body); font-weight: 800; letter-spacing: -0.02em; }
+.resultado-acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.resultado-acoes .link { grid-column: 1 / -1; justify-self: center; align-self: center; }
+.botao-tinta { background: var(--field-4-ink); color: var(--field-4); }
+.botao-tinta:hover { background: color-mix(in srgb, var(--field-4-ink) 80%, var(--field-4)); }
+@media (min-width: 64rem) {
+  .tela-resultado { display: grid; grid-template-columns: 5fr 7fr; grid-template-rows: auto 1fr; column-gap: var(--gutter); height: 100svh; }
+  .tela-resultado h1 { grid-column: 1; }
+  .resultado-texto { grid-column: 1; grid-row: 2; align-content: end; }
+  .resultado-disco { grid-column: 2; grid-row: 1 / span 2; max-height: calc(100svh - 2 * var(--margin)); align-self: center; }
+  .resultado-disco img { max-width: 86%; }
+}
+
+/* ---------- erro ---------- */
+.tela-erro { display: grid; grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 1.25rem; height: 100svh; min-height: 34rem; }
+.erro-mensagem { font-size: var(--step-lead); font-weight: 600; line-height: 1.2; max-width: 24ch; }
+.erro-foto { width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: 50% 30%; }
+.erro-acoes { display: grid; align-self: end; grid-row: -2; }
+@media (min-width: 64rem) {
+  .tela-erro { display: grid; grid-template-columns: 5fr 7fr; grid-template-rows: auto auto 1fr; column-gap: var(--gutter); height: 100svh; }
+  .tela-erro h1, .erro-mensagem { grid-column: 1; }
+  .erro-acoes { grid-column: 1; grid-row: 3; align-self: end; }
+  .erro-foto { grid-column: 2; grid-row: 1 / span 3; width: 100%; height: 100%; max-height: calc(100svh - 2 * var(--margin)); margin: 0; }
+}
+
+/* Evento desligado: título grande, a obra escolhida esperando e o aviso. */
+.tela-pausa { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: 1.25rem; height: 100svh; min-height: 34rem; }
+.pausa-obra { width: 100%; height: 100%; min-height: 0; object-fit: cover; object-position: 50% 22%; }
+@media (min-width: 64rem) {
+  .tela-pausa { grid-template-columns: 5fr 7fr; grid-template-rows: auto 1fr; column-gap: var(--gutter); }
+  .tela-pausa h1 { grid-column: 1; }
+  .tela-pausa .erro-mensagem { grid-column: 1; grid-row: 2; align-self: end; }
+  .pausa-obra { grid-column: 2; grid-row: 1 / span 2; }
+}
+
+/* ---------- iPhone: obra em tela cheia para tocar e segurar ---------- */
+.salvar-ios { position: fixed; inset: 0; z-index: 10; display: grid; grid-template-rows: minmax(0, 1fr) auto auto; gap: 1rem; padding: var(--margin); background: var(--bg); color: var(--ink); }
+.salvar-ios img { width: 100%; height: 100%; object-fit: contain; -webkit-touch-callout: default; }
+.salvar-ios p { font-size: var(--step-lead); font-weight: 600; text-align: center; max-width: none; }
+
 /* ---------- termos ---------- */
 .termos { display: grid; gap: 2rem; padding: clamp(2rem, 8vw, 6rem) var(--margin) 0; }
 .termos h1 { font-size: clamp(2.1rem, 9vw, 8.5rem); }
