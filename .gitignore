@@ -1,0 +1,43 @@
+# Dependências e builds
+node_modules/
+dist/
+*.tsbuildinfo
+
+# Segredos e configuração local (o .env.exemplo continua versionado)
+.env
+.env.*
+!.env.exemplo
+
+# Dados gerados em execução (acervo de fotos e backups)
+dados/
+
+# Teste comparativo de provedores (fotos reais e resultados)
+servidor/comparativo/
+
+# Testes
+coverage/
+site/e2e/.acervo/
+site/test-results/
+site/playwright-report/
+site/blob-report/
+site/playwright/.cache/
+
+# QR codes gerados para impressão
+qrcode.svg
+qrcode.png
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operacional e editores
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Claude Code (worktrees e configurações locais)
+.claude/worktrees/
+.claude/settings.local.json

@@ -112,7 +112,7 @@ docs/
 ### Task 1: Servidor base + módulo de estilos com os 4 quadros
 
 **Files:**
-- Create: `.gitignore`, `servidor/package.json`, `servidor/tsconfig.json`, `servidor/vitest.config.ts`
+- Create: `servidor/package.json`, `servidor/tsconfig.json`, `servidor/vitest.config.ts`
 - Create: `servidor/src/estilos/catalogo.ts`, `servidor/scripts/preparar-estilo.ts`
 - Create: `estilos/LEIA-ME.md`, `estilos/{noite-estrelada,girassois,terraco-do-cafe,autorretrato}/{estilo.json,miniatura.jpg,referencia.jpg}`
 - Test: `servidor/test/catalogo.test.ts`
@@ -125,7 +125,7 @@ docs/
   export function carregarCatalogo(dir: string, avisar: (msg: string) => void): Catalogo
   ```
 
-- [ ] **Step 1: Criar o esqueleto do servidor.** `package.json` com `"type": "module"`, scripts `dev` (`tsx watch src/index.ts`), `build` (`tsc`), `start` (`node dist/index.js`), `test` (`vitest run`); dependências `fastify`, `@fastify/multipart`, `sharp`; dev `typescript`, `tsx`, `vitest`, `@types/node`. `tsconfig` strict, `module`/`moduleResolution` `NodeNext`, `outDir: dist`, `rootDir: .`. `.gitignore` na raiz: `node_modules/`, `dist/`, `dados/`, `.env`, `servidor/comparativo/`, `site/e2e/.acervo/`, `site/test-results/`, `site/playwright-report/`.
+- [ ] **Step 1: Criar o esqueleto do servidor.** `package.json` com `"type": "module"`, scripts `dev` (`tsx watch src/index.ts`), `build` (`tsc`), `start` (`node dist/index.js`), `test` (`vitest run`); dependências `fastify`, `@fastify/multipart`, `sharp`; dev `typescript`, `tsx`, `vitest`, `@types/node`. `tsconfig` strict, `module`/`moduleResolution` `NodeNext`, `outDir: dist`, `rootDir: .`. O `.gitignore` da raiz já existe; conferir que cobre `node_modules/`, `dist/`, `dados/`, `.env`, `servidor/comparativo/`, `site/e2e/.acervo/`, `site/test-results/`, `site/playwright-report/`.
 
 - [ ] **Step 2: Escrever os testes do catálogo** (cada teste monta um diretório temporário com `fs.mkdtemp`):
 
@@ -862,4 +862,4 @@ Sem código novo; precisa dos insumos da spec seção 12.
 
 - [ ] **Step 4: Ensaio geral** na semana do evento: 20 a 30 pessoas ao mesmo tempo. Conferir no log a fila, os limites e a contagem do dia; conferir o backup baixado. Registrar em `docs/validacao-campo.md` e corrigir o que aparecer.
 
-- [ ] **Step 5: Desligar o interruptor** (`EVENTO_ATIVO=false`, `docker compose restart pintor`) até o dia do evento; commit de `docs/validacao-campo.md`.
+- [ ] **Step 5: Desligar o interruptor** (`EVENTO_ATIVO=false`, `docker compose -f deploy/docker-compose.yml up -d pintor` — `restart` não relê o `.env`) até o dia do evento; commit de `docs/validacao-campo.md`.
