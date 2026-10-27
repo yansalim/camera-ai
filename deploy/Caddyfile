@@ -31,7 +31,10 @@
 	}
 
 	handle /api/* {
-		# A foto chega com até 5 MB; acima de 6 MB o Caddy recusa antes do pintor.
+		# A foto chega com até 5 MB. Acima de 6 MB o Caddy recusa: na hora, pelo Content-Length
+		# anunciado (o navegador sempre manda), ou no meio do envio, quando o corpo vem sem tamanho.
+		@grande header_regexp Content-Length ^([6-9][0-9]{6}|[0-9]{8,})$
+		respond @grande 413
 		request_body {
 			max_size 6MB
 		}

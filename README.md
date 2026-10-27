@@ -181,14 +181,14 @@ O código é público, então nada que dê acesso fica no repositório, e os con
 - **Limites.** Cada contêiner tem teto de memória e de processos, e os logs giram em 3 arquivos de 10 MB.
 - **Imagem do pintor enxuta.** Leva só o JavaScript compilado e as dependências de produção, sem npm, código-fonte ou testes, e nenhum pacote roda script na instalação.
 - **Só as variáveis necessárias.** O pintor recebe a lista do `docker-compose.yml`, não o `.env` inteiro.
-- **Cabeçalhos no Caddy.** A CSP permite só o próprio site e a `Permissions-Policy` libera a câmera só para ele. Também saem HSTS, `nosniff` e `X-Frame-Options`, e o cabeçalho `Server` é removido. Envios acima de 6 MB são recusados antes de chegar ao pintor, e a API de administração do Caddy fica desligada.
+- **Cabeçalhos no Caddy.** A CSP permite só o próprio site e a `Permissions-Policy` libera a câmera só para ele. Também saem HSTS, `nosniff` e `X-Frame-Options`, e o cabeçalho `Server` é removido. O Caddy recusa envios acima de 6 MB (pelo tamanho anunciado, antes de repassar ao pintor), e a API de administração dele fica desligada.
 
 O script `deploy/verificar.sh` confere tudo isso: repositório, Compose, contêineres e HTTP.
 
 ### Requisitos
 
 - VPS com Docker 20.10 ou mais novo e o plugin Compose.
-- Um subdomínio com registro DNS apontando para o IP da VPS.
+- Um subdomínio com registro DNS `A` apontando para o IPv4 da VPS e **sem registro `AAAA`** (IPv6). Com IPv6, o Docker repassaria todos os visitantes IPv6 com o mesmo IP, e o limite de 60 pinturas por hora valeria para todos eles juntos.
 - Portas 80 e 443 livres.
 - Um projeto no Google Cloud com a API do Vertex AI habilitada e a [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) instalada na VPS.
 
@@ -212,7 +212,13 @@ O script `deploy/verificar.sh` confere tudo isso: repositório, Compose, contêi
    gcloud auth application-default login --no-launch-browser
    ```
 
-   Aponte `ADC_ARQUIVO` no `.env` para o arquivo gerado (`~/.config/gcloud/application_default_credentials.json`). Ele fica fora do repositório, legível só pelo dono e pelo usuário do contêiner (uid 1000).
+   O `gcloud` grava o arquivo legível só para quem fez o login. Por isso, copie-o para fora do repositório com dono uid 1000, que é o usuário do pintor:
+
+   ```bash
+   sudo install -D -o 1000 -g 1000 -m 0400 ~/.config/gcloud/application_default_credentials.json /etc/camera-ai/adc.json
+   ```
+
+   No `deploy/.env`, use `ADC_ARQUIVO=/etc/camera-ai/adc.json`. Se fizer o login de novo, repita a cópia e recrie o pintor (`docker compose -f deploy/docker-compose.yml up -d pintor`).
 
 4. Crie a pasta do acervo com o dono do usuário do contêiner (`node`, uid 1000):
 

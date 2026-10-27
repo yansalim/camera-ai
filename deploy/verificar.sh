@@ -7,6 +7,8 @@
 #
 # Sai com código 1 se alguma conferência falhar.
 set -uo pipefail
+# No Git Bash (Windows), impede que /run/... vire C:/Program Files/Git/run/... nos argumentos do docker.
+export MSYS_NO_PATHCONV=1
 
 cd "$(dirname "$0")/.."
 COMPOSE=(docker compose -f deploy/docker-compose.yml)
@@ -72,6 +74,12 @@ else
       confere "pintor não publica porta (só o Caddy fala com ele)" test "$(ver '{{len .HostConfig.PortBindings}}')" = 0
       confere "pintor monta os estilos somente leitura" grep -q '/app/estilos:false' <<<"$montagens"
       confere "pintor recebe o login do Google somente leitura" grep -q '/run/secrets/adc:false' <<<"$montagens"
+      # O Vertex só lê o login na primeira pintura: sem estas duas, /api/saude responde ok e toda pintura falha.
+      confere "pintor consegue ler o login do Google (dono uid 1000)" docker exec "$id" test -r /run/secrets/adc
+      if [ "$(docker exec "$id" printenv PROVEDOR)" = vertex ]; then
+        confere "o login do Google não está vazio" docker exec "$id" test -s /run/secrets/adc
+      fi
+      confere "pintor consegue gravar o acervo (dono uid 1000)" docker exec "$id" test -w /dados/acervo
       confere "pintor não leva npm, código-fonte nem testes" \
         docker exec "$id" sh -c '! command -v npm && test ! -e /app/src -a ! -e /app/test'
     else
@@ -84,7 +92,7 @@ else
   done
 
   echo "HTTP ($URL)"
-  cabecalhos=$(curl -ksSI "$URL/")
+  cabecalhos=$(curl -ksSI -m 15 "$URL/")
   for cabecalho in content-security-policy x-content-type-options referrer-policy permissions-policy x-frame-options cross-origin-opener-policy; do
     confere "o site envia $cabecalho" grep -qi "^$cabecalho:" <<<"$cabecalhos"
   done
@@ -93,13 +101,21 @@ else
   fi
   confere "o site não anuncia o servidor" bash -c "! grep -qi '^server:' <<<'$cabecalhos'"
   confere "a câmera só vale para o próprio site" grep -qi '^permissions-policy:.*camera=(self)' <<<"$cabecalhos"
-  confere "/api/saude responde ok" grep -q '"ok":true' <<<"$(curl -ksS "$URL/api/saude")"
-  # Mesmo tipo do envio do site (multipart), para o pintor não recusar antes do Caddy.
-  codigo=$(head -c 7000000 /dev/zero | curl -ks -m 30 -o /dev/null -w '%{http_code}' -X POST \
-    -H 'Content-Type: multipart/form-data; boundary=x' --data-binary @- "$URL/api/pintar")
-  confere "envio acima de 6 MB é recusado na porta (HTTP $codigo)" test "$codigo" = 413
+  confere "/api/saude responde ok" grep -q '"ok":true' <<<"$(curl -ksS -m 15 "$URL/api/saude")"
+  # Anuncia 7 MB e manda 1 byte: só o Caddy, olhando o Content-Length, responde na hora.
+  # Se o pedido chegasse ao pintor, ele ficaria esperando o resto do corpo até o tempo acabar.
+  codigo=$(curl -ks -m 10 -o /dev/null -w '%{http_code}' -X POST -H 'Content-Length: 7000000' \
+    -H 'Content-Type: multipart/form-data; boundary=x' --data-binary x "$URL/api/pintar")
+  confere "envio anunciado acima de 6 MB é recusado antes do pintor (HTTP $codigo)" test "$codigo" = 413
+  host=${URL#*://}
+  host=${host%%[:/]*}
+  if [ "$host" != localhost ] && [ "$host" != 127.0.0.1 ]; then
+    # Com IPv6, o Docker repassa os visitantes ao Caddy com um mesmo IP e o limite por IP vira um só para todos.
+    confere "o subdomínio não responde por IPv6 (sem registro AAAA)" \
+      bash -c "! curl -6 -ks -m 10 -o /dev/null --connect-timeout 5 '$URL/'"
+  fi
   for caminho in /dados/acervo/ /acervo/ /.env /deploy/.env; do
-    tipo=$(curl -ks -o /dev/null -w '%{content_type}' "$URL$caminho")
+    tipo=$(curl -ks -m 15 -o /dev/null -w '%{content_type}' "$URL$caminho")
     confere "$caminho não expõe arquivos (devolve a página do site)" test "${tipo%%;*}" = text/html
   done
 fi
