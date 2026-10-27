@@ -122,6 +122,7 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
   - dados do Caddy (certificados);
   - o arquivo de credenciais do login OAuth (`application_default_credentials.json`) montado somente leitura no pintor, guardado fora do repositório e com permissão restrita.
 - Configuração em `.env` (com `.env.exemplo` versionado, sem segredos).
+- O repositório é público, então os contêineres rodam com o mínimo de permissões (pedido do usuário em 2026-10-27): sem root e sem capabilities, com sistema de arquivos somente leitura e limites de memória e de processos. O Caddy envia CSP e os cabeçalhos de segurança, e o `deploy/verificar.sh` confere tudo isso.
 - Se a VPS já tiver Nginx ou outro serviço ocupando as portas 80/443, o Caddy é substituído por um bloco de configuração no servidor existente.
 
 ## 5. Módulo de estilos

@@ -46,6 +46,15 @@
 15. **6 estilos iniciais** (Arte Grega, Renascimento, Cubismo, Expressionismo, Van Gogh, Mona Lisa). Cada `estilo.json` traz `legenda` (a linha abaixo do nome no cartão, no lugar do antigo `artista`) e `frases` (as frases da revelação daquele estilo). Os nomes internos da tela de escolha (`quadros`, `cartao-estilo`) continuam como estão.
 16. **Câmera dentro do site, nunca galeria** (pedido do usuário depois do Marco 1). `site/src/camera.ts` abre a câmera frontal com `getUserMedia`, fotografa o quadro mostrado (espelhado, como na tela) e fecha a câmera. A tela de foto não tem `<input type="file">`; os `data-testid` passam a ser `botao-tirar-foto` (abre a câmera), `camera-ao-vivo` (o vídeo), `botao-fotografar` e `aviso-camera`. Nos e2e a câmera é simulada com `canvas.captureStream()`.
 
+17. **Contêineres com o mínimo de permissões** (pedido do usuário: o repositório é público).
+    - **Permissões:** pintor como `node` (uid 1000) e Caddy como uid 10001, ambos com `cap_drop: [ALL]`, `no-new-privileges`, `read_only` com `/tmp` em tmpfs, limites de memória e processos e logs com rotação.
+    - **Portas:** o Caddy abre 80 e 443 pelo sysctl `net.ipv4.ip_unprivileged_port_start=0`, sem a capability do binário (`setcap -r`).
+    - **Variáveis:** o pintor recebe uma lista explícita no `environment`, não o `.env` inteiro.
+    - **Login do Google:** entra como `secrets` do Compose em `/run/secrets/adc`.
+    - **Caddyfile:** CSP, `Permissions-Policy` (câmera só para o site), HSTS, `nosniff`, `X-Frame-Options`, sem `Server`, `admin off` e tempos limite de leitura.
+    - **`.dockerignore`:** deixa segredos, dados e testes fora do contexto do build.
+    - **Verificação:** `deploy/verificar.sh [URL]` confere repositório, Compose, contêineres e HTTP; é o teste da Task 15.
+
 ## Review Focus
 
 1. **Muitos visitantes atrás do mesmo IP (Wi-Fi do evento) e o pintor atrás do Caddy** — sem `trustProxy`, todos os pedidos parecem vir do IP do Caddy e o limite de 60/h trava o evento inteiro. Teste na Task 8 (`X-Forwarded-For` distintos contam separado).
@@ -822,7 +831,9 @@ Passos 7 a 10 do roteiro do skill sobre o site inteiro, já com todas as telas. 
 ### Task 15: Deploy (Docker Compose + Caddy)
 
 **Files:**
-- Create: `deploy/{docker-compose.yml,Caddyfile,pintor.Dockerfile,caddy.Dockerfile,.env.exemplo}`
+- Create: `deploy/{docker-compose.yml,Caddyfile,pintor.Dockerfile,caddy.Dockerfile,.env.exemplo,verificar.sh}`, `.dockerignore`
+- Modify: `.gitignore` (overrides do Compose, chaves e credenciais), `README.md` (proteções e teste no computador)
+- Proteções: Decisão 17. Os blocos abaixo são o desenho original; onde divergem, valem a Decisão 17 e os arquivos em `deploy/`.
 
 **Interfaces:**
 - Consumes: `npm run build` e `npm start` do servidor; `npm run build` do site (gera `site/dist`).

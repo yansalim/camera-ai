@@ -171,9 +171,23 @@ O deploy roda numa VPS Linux com Docker Compose e dois serviços:
 - **`caddy`** publica as portas 80 e 443, emite o certificado HTTPS (Let's Encrypt), serve o build do site e faz proxy de `/api/*` para o pintor.
 - **`pintor`** não publica porta; só o Caddy fala com ele. Monta `estilos/` como somente leitura e `dados/acervo/` com escrita. O Caddy não tem acesso ao acervo.
 
+### Proteções
+
+O código é público, então nada que dê acesso fica no repositório, e os contêineres rodam com o mínimo de permissões:
+
+- **Segredos fora do git e das imagens.** `deploy/.env`, o login do Google, chaves e o acervo estão no `.gitignore` e no `.dockerignore`. O login chega ao pintor como segredo do Compose, somente leitura, em `/run/secrets/adc`.
+- **Sem root.** O pintor roda como `node` (uid 1000) e o Caddy como uid 10001, os dois sem nenhuma capability. O Caddy abre as portas 80 e 443 pelo sysctl `net.ipv4.ip_unprivileged_port_start`.
+- **Sistema de arquivos somente leitura.** Só o acervo (no pintor), os certificados (no Caddy) e `/tmp` aceitam escrita, e `no-new-privileges` impede que um processo ganhe privilégios depois de iniciar.
+- **Limites.** Cada contêiner tem teto de memória e de processos, e os logs giram em 3 arquivos de 10 MB.
+- **Imagem do pintor enxuta.** Leva só o JavaScript compilado e as dependências de produção, sem npm, código-fonte ou testes, e nenhum pacote roda script na instalação.
+- **Só as variáveis necessárias.** O pintor recebe a lista do `docker-compose.yml`, não o `.env` inteiro.
+- **Cabeçalhos no Caddy.** A CSP permite só o próprio site e a `Permissions-Policy` libera a câmera só para ele. Também saem HSTS, `nosniff` e `X-Frame-Options`, e o cabeçalho `Server` é removido. Envios acima de 6 MB são recusados antes de chegar ao pintor, e a API de administração do Caddy fica desligada.
+
+O script `deploy/verificar.sh` confere tudo isso: repositório, Compose, contêineres e HTTP.
+
 ### Requisitos
 
-- VPS com Docker e o plugin Compose.
+- VPS com Docker 20.10 ou mais novo e o plugin Compose.
 - Um subdomínio com registro DNS apontando para o IP da VPS.
 - Portas 80 e 443 livres.
 - Um projeto no Google Cloud com a API do Vertex AI habilitada e a [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) instalada na VPS.
@@ -217,6 +231,30 @@ O deploy roda numa VPS Linux com Docker Compose e dois serviços:
    ```bash
    curl https://SEU_SUBDOMINIO/api/saude
    ```
+
+7. Confira as proteções. O script termina com "Tudo certo." ou lista o que falhou:
+
+   ```bash
+   bash deploy/verificar.sh https://SEU_SUBDOMINIO
+   ```
+
+### Testar no computador
+
+Com o Docker instalado, o mesmo Compose sobe localmente, com o provedor falso e sem certificado. Copie o exemplo e crie o arquivo vazio que faz o papel do login:
+
+```bash
+cp deploy/.env.exemplo deploy/.env
+touch deploy/adc-vazio.json
+```
+
+No `deploy/.env`, use `DOMINIO=http://localhost`, `PROVEDOR=falso`, `EVENTO_ATIVO=true` e `ADC_ARQUIVO=./adc-vazio.json`. Depois suba e confira:
+
+```bash
+docker compose -f deploy/docker-compose.yml up -d --build
+bash deploy/verificar.sh http://localhost
+```
+
+O site fica em `http://localhost`. Para desligar: `docker compose -f deploy/docker-compose.yml down`.
 
 ### Variáveis do `deploy/.env`
 
