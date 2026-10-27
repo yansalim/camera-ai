@@ -53,14 +53,27 @@ export function rotaDePintura(app: FastifyInstance, deps: Dependencias): void {
       // Daqui em diante a vaga do teto está reservada: ou confirma, ou libera.
       let pintura: Buffer
       let relogio: NodeJS.Timeout | undefined
+      const cancelamento = new AbortController()
+      const trabalho = fila.executar(async () => {
+        // Chegou a vez depois do tempo esgotado: o visitante já recebeu 504, então a IA não é chamada.
+        if (cancelamento.signal.aborted) throw new ErroApi('TEMPO_ESGOTADO')
+        return provedor.pintar(original, estilo, cancelamento.signal)
+      })
+      trabalho.catch(() => {}) // resposta tardia (depois do tempo esgotado) é descartada
       try {
-        const trabalho = fila.executar(() => provedor.pintar(original, estilo))
-        trabalho.catch(() => {}) // resposta tardia (depois do tempo esgotado) é descartada
         const tempo = new Promise<never>((_, rejeitar) => {
-          relogio = setTimeout(() => rejeitar(new ErroApi('TEMPO_ESGOTADO')), config.tempoMaximoMs)
+          relogio = setTimeout(() => {
+            cancelamento.abort()
+            rejeitar(new ErroApi('TEMPO_ESGOTADO'))
+          }, config.tempoMaximoMs)
         })
         pintura = await paraJpeg(await Promise.race([trabalho, tempo]))
       } catch (e) {
+        if (e instanceof ErroApi && e.codigo === 'TEMPO_ESGOTADO') {
+          // A chamada ainda pode estar rodando (e ser cobrada): a vaga do teto só volta quando ela terminar.
+          void trabalho.then(teto.liberar, teto.liberar)
+          throw e
+        }
         teto.liberar()
         if (e instanceof ErroApi) throw e
         if (e instanceof ErroRecusa) throw new ErroApi('RECUSADA')

@@ -13,7 +13,7 @@ export function criarProvedor(config: Config): Provedor {
       const { projeto, local, modelo } = config.google
       // lerConfig já exige os dois com PROVEDOR=vertex.
       if (!projeto || !modelo) throw new Error('PROVEDOR=vertex exige GOOGLE_CLOUD_PROJECT e MODELO_IMAGEM')
-      return comNovaTentativa(criarProvedorVertex({ projeto, local, modelo }))
+      return comNovaTentativa(criarProvedorVertex({ projeto, local, modelo, tempoLimiteMs: config.tempoMaximoMs }))
     }
     default:
       throw new Error(`Provedor desconhecido: ${config.provedor}`)

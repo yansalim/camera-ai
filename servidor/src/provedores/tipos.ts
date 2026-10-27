@@ -3,8 +3,8 @@ import type { Estilo } from '../estilos/catalogo.js'
 export interface Provedor {
   readonly nome: string
   readonly modelo: string
-  /** Recebe a foto (JPEG) e devolve a imagem pintada no estilo. */
-  pintar(foto: Buffer, estilo: Estilo): Promise<Buffer>
+  /** Recebe a foto (JPEG) e devolve a imagem pintada no estilo. `sinal` cancela a chamada quando o tempo acaba. */
+  pintar(foto: Buffer, estilo: Estilo, sinal?: AbortSignal): Promise<Buffer>
 }
 
 /** O provedor recusou a imagem (filtro de conteúdo). Não adianta repetir. */

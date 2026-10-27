@@ -60,6 +60,14 @@ describe('comNovaTentativa', () => {
     expect(pintar).toHaveBeenCalledTimes(1)
   })
 
+  it('não repete depois de cancelado', async () => {
+    const { p, pintar } = provedorRoteirizado([new ErroTemporario('cancelado'), ok])
+    const controle = new AbortController()
+    controle.abort()
+    await expect(comNovaTentativa(p).pintar(Buffer.from('foto'), estilo, controle.signal)).rejects.toBeInstanceOf(ErroTemporario)
+    expect(pintar).toHaveBeenCalledTimes(1)
+  })
+
   it('mantém nome e modelo do provedor embrulhado', () => {
     const { p } = provedorRoteirizado([])
     expect(comNovaTentativa(p)).toMatchObject({ nome: 'roteiro', modelo: 'r-1' })

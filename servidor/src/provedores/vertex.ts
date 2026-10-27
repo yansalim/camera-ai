@@ -13,7 +13,7 @@ interface Parte {
 export interface PedidoVertex {
   model: string
   contents: Array<{ role: 'user'; parts: Parte[] }>
-  config: { responseModalities: string[] }
+  config: { responseModalities: string[]; abortSignal?: AbortSignal; httpOptions?: { timeout?: number } }
 }
 
 /** Chamada ao modelo; em produção é `ai.models.generateContent`, nos testes um dublê. */
@@ -41,7 +41,10 @@ const jpeg = (b: Buffer): Parte => ({ inlineData: { mimeType: 'image/jpeg', data
  * Provedor Google Cloud Vertex AI (modelos de imagem Gemini). As credenciais vêm do login OAuth
  * (Application Default Credentials); nada de chave no código ou no ambiente.
  */
-export function criarProvedorVertex(o: { projeto: string; local: string; modelo: string }, gerar?: GerarConteudo): Provedor {
+export function criarProvedorVertex(
+  o: { projeto: string; local: string; modelo: string; tempoLimiteMs?: number },
+  gerar?: GerarConteudo,
+): Provedor {
   let chamar = gerar
   const cliente = (): GerarConteudo => {
     if (!chamar) {
@@ -54,12 +57,13 @@ export function criarProvedorVertex(o: { projeto: string; local: string; modelo:
   return {
     nome: 'vertex',
     modelo: o.modelo,
-    async pintar(foto: Buffer, estilo: Estilo) {
+    async pintar(foto: Buffer, estilo: Estilo, sinal?: AbortSignal) {
       const referencia = estilo.caminhoReferencia ? await readFile(estilo.caminhoReferencia) : undefined
       const pedido: PedidoVertex = {
         model: o.modelo,
         contents: [{ role: 'user', parts: [{ text: montarPrompt(estilo, !!referencia) }, jpeg(foto), ...(referencia ? [jpeg(referencia)] : [])] }],
-        config: { responseModalities: ['IMAGE'] },
+        // Sem tempo limite próprio, o SDK espera até 10 minutos por uma chamada travada.
+        config: { responseModalities: ['IMAGE'], abortSignal: sinal, httpOptions: { timeout: o.tempoLimiteMs ?? 90_000 } },
       }
       let resposta: unknown
       try {

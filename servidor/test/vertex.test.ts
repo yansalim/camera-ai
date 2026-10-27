@@ -72,6 +72,15 @@ describe('criarProvedorVertex', () => {
     expect(referencia.inlineData).toEqual({ mimeType: 'image/jpeg', data: base64('ref') })
   })
 
+  it('repassa o cancelamento e um tempo limite ao SDK', async () => {
+    const gerar = vi.fn<GerarConteudo>(async () => respostaComImagem)
+    const controle = new AbortController()
+    await criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste, controle.signal)
+    const { config } = gerar.mock.calls[0][0]
+    expect(config.abortSignal).toBe(controle.signal)
+    expect(config.httpOptions?.timeout).toBeGreaterThan(0)
+  })
+
   it('sem referência envia só a foto', async () => {
     const gerar = vi.fn<GerarConteudo>(async () => respostaComImagem)
     await criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste)

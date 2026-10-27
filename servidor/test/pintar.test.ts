@@ -187,6 +187,46 @@ describe('POST /api/pintar', () => {
     expect(ctx.deps.teto.gravadasHoje()).toBe(0)
   })
 
+  it('pedido que estoura o tempo esperando na fila não chama a IA depois', async () => {
+    const chamadas: string[] = []
+    const lento: Provedor = {
+      nome: 'falso',
+      modelo: 'falso-1',
+      pintar: async foto => {
+        chamadas.push('chamou')
+        await esperar(300)
+        return foto
+      },
+    }
+    const ctx = await preparar({ config: { concorrencia: 1, tempoMaximoMs: 400 }, provedor: lento })
+    const respostas = await Promise.all(['a', 'b', 'c'].map(aparelho => pintar(ctx, {}, { 'x-aparelho': aparelho })))
+    expect(respostas.map(r => r.statusCode).sort()).toEqual([200, 504, 504])
+    await esperar(700)
+    // O 1º pinta; o 2º começa antes do tempo dele acabar; o 3º chega à vez já cancelado e não chama a IA.
+    expect(chamadas).toHaveLength(2)
+  })
+
+  it('a vaga do teto só volta quando a IA termina, mesmo depois do tempo esgotado', async () => {
+    let primeira = true
+    const provedor: Provedor = {
+      nome: 'falso',
+      modelo: 'falso-1',
+      pintar: async foto => {
+        if (primeira) {
+          primeira = false
+          await esperar(300)
+        }
+        return foto
+      },
+    }
+    const ctx = await preparar({ config: { tetoDiario: 1, tempoMaximoMs: 100 }, provedor })
+    expect((await pintar(ctx, {}, { 'x-aparelho': 'a' })).json().erro).toBe('TEMPO_ESGOTADO')
+    // A 1ª chamada ainda está rodando (e será paga): a vaga continua reservada.
+    expect((await pintar(ctx, {}, { 'x-aparelho': 'b' })).json().erro).toBe('TETO_DIARIO')
+    await esperar(350)
+    expect((await pintar(ctx, {}, { 'x-aparelho': 'c' })).statusCode).toBe(200)
+  })
+
   it('falha ao gravar o acervo ainda entrega a pintura', async () => {
     const acervo: Acervo = { gravar: async () => { throw new Error('disco cheio') }, contarHoje: async () => 0 }
     const r = await pintar(await preparar({ acervo }))
