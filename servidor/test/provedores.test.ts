@@ -82,6 +82,11 @@ describe('criarProvedor', () => {
     expect(() => criarProvedor({ ...lerConfig({}), provedor: 'xyz' })).toThrow('Provedor desconhecido: xyz')
   })
 
+  it('cria o vertex pela config, com o modelo escolhido', () => {
+    const config = lerConfig({ PROVEDOR: 'vertex', GOOGLE_CLOUD_PROJECT: 'p', MODELO_IMAGEM: 'gemini-nano-banana-2.1' })
+    expect(criarProvedor(config)).toMatchObject({ nome: 'vertex', modelo: 'gemini-nano-banana-2.1' })
+  })
+
   it('cria o falso pela config', () => {
     expect(criarProvedor(lerConfig({}))).toMatchObject({ nome: 'falso' })
   })
