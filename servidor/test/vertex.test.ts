@@ -94,6 +94,20 @@ describe('criarProvedorVertex', () => {
     await expect(criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste)).rejects.toBeInstanceOf(ErroTemporario)
   })
 
+  it('login do Google ausente ou expirado pede novo login e não repete', async () => {
+    for (const mensagem of [
+      'Could not load the default credentials. Browse to https://cloud.google.com/docs/authentication/getting-started for more information.',
+      'invalid_grant: reauth related error (invalid_rapt)',
+    ]) {
+      const gerar = vi.fn<GerarConteudo>(async () => {
+        throw new Error(mensagem)
+      })
+      const erro = await criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste).catch(e => e)
+      expect(erro).not.toBeInstanceOf(ErroTemporario)
+      expect(erro.message).toMatch(/refaça o login OAuth/)
+    }
+  })
+
   it('falha de rede vira temporária', async () => {
     const gerar = vi.fn<GerarConteudo>(async () => { throw new TypeError('fetch failed') })
     await expect(criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste)).rejects.toBeInstanceOf(ErroTemporario)

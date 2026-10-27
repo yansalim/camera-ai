@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { ApiError, GoogleGenAI } from '@google/genai'
 import type { Estilo } from '../estilos/catalogo.js'
-import { classificarStatus } from './http.js'
+import { classificarStatus, erroDeLogin } from './http.js'
 import { montarPrompt } from './prompt.js'
 import { ErroRecusa, ErroTemporario, type Provedor } from './tipos.js'
 
@@ -70,6 +70,9 @@ export function criarProvedorVertex(
         resposta = await cliente()(pedido)
       } catch (e) {
         if (e instanceof ApiError) throw classificarStatus(e.status, e.message)
+        // Login ausente ou expirado não é falha de rede: repetir não adianta, e o log precisa pedir novo login.
+        const login = erroDeLogin((e as Error).message)
+        if (login) throw login
         throw new ErroTemporario(`Falha de rede no Vertex AI: ${(e as Error).message}`)
       }
       return interpretarVertex(resposta)
