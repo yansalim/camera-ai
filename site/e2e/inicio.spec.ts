@@ -20,14 +20,12 @@ test('aceite grava v1 e leva aos estilos em ordem', async ({ page }) => {
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('aceite')!)).termosVersao).toBe('v1')
 })
 
-test('escolher um estilo abre a tela da câmera nativa', async ({ page }) => {
+test('escolher um estilo leva à tela da câmera, sem seletor de arquivo', async ({ page }) => {
   await page.goto('/')
   await page.getByTestId('botao-criar').click()
   await page.locator('[data-testid="cartao-estilo"][data-estilo-id="mona-lisa"]').click()
   await expect(page.getByTestId('botao-tirar-foto')).toBeVisible()
-  const input = page.getByTestId('input-foto')
-  await expect(input).toHaveAttribute('capture', 'user')
-  await expect(input).toHaveAttribute('accept', 'image/*')
+  await expect(page.locator('input[type="file"]')).toHaveCount(0)
 })
 
 test('evento desligado mostra o aviso e esconde o botão', async ({ page }) => {
