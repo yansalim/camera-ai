@@ -44,6 +44,7 @@
 13. **Fontes e imagens servidas pelo próprio site**, sem CDN em tempo de execução (a internet do evento é instável).
 14. **Provedor: Google Cloud Vertex AI com login OAuth do usuário** (sem chave de API, sem conta de serviço), custeado pelo crédito de avaliação de US$ 300; o comparativo escolhe entre Nano Banana 2.1, 2 e Pro. Plano B, se o crédito não liberar os modelos de imagem: fal.ai.
 15. **6 estilos iniciais** (Arte Grega, Renascimento, Cubismo, Expressionismo, Van Gogh, Mona Lisa). Cada `estilo.json` traz `legenda` (a linha abaixo do nome no cartão, no lugar do antigo `artista`) e `frases` (as frases da revelação daquele estilo). Os nomes internos da tela de escolha (`quadros`, `cartao-estilo`) continuam como estão.
+16. **Câmera dentro do site, nunca galeria** (pedido do usuário depois do Marco 1). `site/src/camera.ts` abre a câmera frontal com `getUserMedia`, fotografa o quadro mostrado (espelhado, como na tela) e fecha a câmera. A tela de foto não tem `<input type="file">`; os `data-testid` passam a ser `botao-tirar-foto` (abre a câmera), `camera-ao-vivo` (o vídeo), `botao-fotografar` e `aviso-camera`. Nos e2e a câmera é simulada com `canvas.captureStream()`.
 
 ## Review Focus
 
