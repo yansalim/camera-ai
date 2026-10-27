@@ -13,6 +13,8 @@ async function lerFormulario(req: FastifyRequest): Promise<{ campos: Record<stri
       const conteudo = await parte.toBuffer()
       if (parte.fieldname === 'foto') foto = conteudo
     } else {
+      // Valor maior que o limite de campo chega cortado: o pedido não é de um celular nosso.
+      if (parte.valueTruncated || parte.fieldnameTruncated) throw new ErroApi('FOTO_INVALIDA')
       campos[parte.fieldname] = String(parte.value)
     }
   }
@@ -20,7 +22,7 @@ async function lerFormulario(req: FastifyRequest): Promise<{ campos: Record<stri
 }
 
 const aceiteValido = (termosVersao?: string, aceiteEm?: string) =>
-  !!termosVersao?.trim() && !!aceiteEm && /^\d{4}-\d{2}-\d{2}T/.test(aceiteEm) && !Number.isNaN(Date.parse(aceiteEm))
+  !!termosVersao && /^v\d+$/.test(termosVersao) && !!aceiteEm && /^\d{4}-\d{2}-\d{2}T/.test(aceiteEm) && !Number.isNaN(Date.parse(aceiteEm))
 
 export function rotaDePintura(app: FastifyInstance, deps: Dependencias): void {
   const { config, catalogo, provedor, acervo, limitadorAparelho, limitadorIp, teto, fila } = deps
@@ -37,9 +39,9 @@ export function rotaDePintura(app: FastifyInstance, deps: Dependencias): void {
       if (!config.eventoAtivo) throw new ErroApi('EVENTO_INATIVO')
       const { campos, foto } = await lerFormulario(req)
       if (!aceiteValido(campos.termosVersao, campos.aceiteEm)) throw new ErroApi('ACEITE_AUSENTE')
-      estiloId = campos.estiloId
-      const estilo = estiloId ? catalogo.buscar(estiloId) : undefined
+      const estilo = campos.estiloId ? catalogo.buscar(campos.estiloId) : undefined
       if (!estilo) throw new ErroApi('ESTILO_INVALIDO')
+      estiloId = estilo.id // só um id do catálogo vai para o log
       if (!foto) throw new ErroApi('FOTO_INVALIDA')
       const original = await prepararFoto(foto).catch(e => {
         throw e instanceof ErroFotoInvalida ? new ErroApi('FOTO_INVALIDA') : e

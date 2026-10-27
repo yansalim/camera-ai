@@ -114,6 +114,23 @@ describe('POST /api/pintar', () => {
     expect(r.json().erro).toBe('FOTO_INVALIDA')
   })
 
+  it('campo de texto gigante → 400 FOTO_INVALIDA', async () => {
+    const r = await pintar(await preparar(), { estiloId: 'x'.repeat(10_000) })
+    expect(r.statusCode).toBe(400)
+    expect(r.json().erro).toBe('FOTO_INVALIDA')
+  })
+
+  it('campos demais → 400 FOTO_INVALIDA', async () => {
+    const extras = Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`extra${i}`, 'x']))
+    const r = await pintar(await preparar(), extras)
+    expect(r.statusCode).toBe(400)
+    expect(r.json().erro).toBe('FOTO_INVALIDA')
+  })
+
+  it('versão dos termos fora do formato → 400 ACEITE_AUSENTE', async () => {
+    expect((await pintar(await preparar(), { termosVersao: 'qualquer coisa' })).json().erro).toBe('ACEITE_AUSENTE')
+  })
+
   it('pedido inválido não consome o limite do aparelho', async () => {
     const ctx = await preparar({ config: { limiteAparelho: { max: 1, janelaMs: 60_000 } } })
     expect((await pintar(ctx, { estiloId: 'nao-existe' })).statusCode).toBe(400)

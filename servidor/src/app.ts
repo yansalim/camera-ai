@@ -32,7 +32,8 @@ export function construirApp(deps: Dependencias, opcoes: { logger?: boolean } = 
     logController: new LogController({ disableRequestLogging: true }),
   })
 
-  app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } })
+  // Além da foto (5 MB), só três campos curtos: estiloId, termosVersao e aceiteEm.
+  app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1, fields: 3, fieldSize: 200, parts: 4 } })
 
   app.setErrorHandler((erro, req, reply) => {
     const codigo = codigoDoErro(erro)
