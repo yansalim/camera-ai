@@ -8,7 +8,8 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "vitrine": "vite build --mode vitrine --outDir dist-vitrine && vite preview --outDir dist-vitrine --port 4173 --strictPort"
   },
   "devDependencies": {
     "@fontsource-variable/schibsted-grotesk": "^5.3.0",

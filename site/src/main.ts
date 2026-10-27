@@ -1,3 +1,6 @@
-// Ponto de entrada do site. As telas entram nas Tasks 12 e 13.
-const app = document.querySelector<HTMLElement>('#app')
-if (app) app.dataset.pronto = 'true'
+import './estilos.css'
+import { irPara } from './navegacao'
+import { registrarTelas } from './telas/registro'
+
+registrarTelas()
+irPara('inicio')

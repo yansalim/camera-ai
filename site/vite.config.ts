@@ -1,7 +1,9 @@
 import { resolve } from 'node:path'
 import { defineConfig } from 'vite'
 
-export default defineConfig({
+const pagina = (nome: string) => resolve(import.meta.dirname, `${nome}.html`)
+
+export default defineConfig(({ mode }) => ({
   server: {
     // Em desenvolvimento o Vite encaminha a API para o pintor.
     proxy: { '/api': 'http://localhost:3000' },
@@ -10,11 +12,10 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:3000' },
   },
   build: {
+    target: 'es2022',
     rollupOptions: {
-      input: {
-        index: resolve(import.meta.dirname, 'index.html'),
-        termos: resolve(import.meta.dirname, 'termos.html'),
-      },
+      // A vitrine só entra no build de inspeção (--mode vitrine), nunca em site/dist.
+      input: { index: pagina('index'), termos: pagina('termos'), ...(mode === 'vitrine' ? { vitrine: pagina('vitrine') } : {}) },
     },
   },
-})
+}))
