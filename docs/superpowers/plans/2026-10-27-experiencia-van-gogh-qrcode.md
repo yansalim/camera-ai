@@ -1,8 +1,8 @@
-# Experiência "Vire uma pintura de Van Gogh" — Plano de Implementação
+# Experiência "Vire uma obra de arte" — Plano de Implementação
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Site acessado por QR code em que o visitante aceita os termos, escolhe um quadro, tira uma foto com a câmera nativa e recebe a foto repintada por IA generativa no estilo do quadro, com o par foto/pintura guardado num acervo na VPS.
+**Goal:** Site acessado por QR code em que o visitante aceita os termos, escolhe um dos 6 estilos de arte, tira uma foto com a câmera nativa e recebe a foto refeita por IA generativa no estilo escolhido, com o par foto/pintura guardado num acervo na VPS.
 
 **Architecture:** Site estático (Vite + TypeScript, sem framework) servido pelo Caddy, que também faz proxy de `/api/*` para o serviço "pintor" (Node.js + Fastify). O pintor lê o catálogo de estilos de `estilos/`, aplica as proteções (interruptor de evento, limites, teto diário, fila), chama a IA por um adaptador de provedor e grava o acervo em `dados/acervo/`. Tudo sobe com Docker Compose.
 
@@ -43,6 +43,7 @@
 12. **Vitrine de telas** (`site/vitrine.html?tela=…`): monta cada tela com estado fixo, para o inspetor fotografar todas sem passar pelo fluxo. Só entra no build com `--mode vitrine`; nunca em `site/dist`.
 13. **Fontes e imagens servidas pelo próprio site**, sem CDN em tempo de execução (a internet do evento é instável).
 14. **Provedor: Google Cloud Vertex AI com login OAuth do usuário** (sem chave de API, sem conta de serviço), custeado pelo crédito de avaliação de US$ 300; o comparativo escolhe entre Nano Banana 2.1, 2 e Pro. Plano B, se o crédito não liberar os modelos de imagem: fal.ai.
+15. **6 estilos iniciais** (Arte Grega, Renascimento, Cubismo, Expressionismo, Van Gogh, Mona Lisa). Cada `estilo.json` traz `legenda` (a linha abaixo do nome no cartão, no lugar do antigo `artista`) e `frases` (as frases da revelação daquele estilo). Os nomes internos da tela de escolha (`quadros`, `cartao-estilo`) continuam como estão.
 
 ## Review Focus
 
@@ -61,7 +62,7 @@
 .gitignore
 estilos/
   LEIA-ME.md                         como incluir um estilo
-  noite-estrelada/ girassois/ terraco-do-cafe/ autorretrato/
+  arte-grega/ renascimento/ cubismo/ expressionismo/ van-gogh/ mona-lisa/
     estilo.json  miniatura.jpg  referencia.jpg
 servidor/
   package.json  tsconfig.json  vitest.config.ts
@@ -110,18 +111,18 @@ docs/
 
 ---
 
-### Task 1: Servidor base + módulo de estilos com os 4 quadros
+### Task 1: Servidor base + módulo de estilos com os 6 estilos
 
 **Files:**
 - Create: `servidor/package.json`, `servidor/tsconfig.json`, `servidor/vitest.config.ts`
 - Create: `servidor/src/estilos/catalogo.ts`, `servidor/scripts/preparar-estilo.ts`
-- Create: `estilos/LEIA-ME.md`, `estilos/{noite-estrelada,girassois,terraco-do-cafe,autorretrato}/{estilo.json,miniatura.jpg,referencia.jpg}`
+- Create: `estilos/LEIA-ME.md`, `estilos/{arte-grega,renascimento,cubismo,expressionismo,van-gogh,mona-lisa}/{estilo.json,miniatura.jpg,referencia.jpg}`
 - Test: `servidor/test/catalogo.test.ts`
 
 **Interfaces:**
 - Produces:
   ```ts
-  export interface Estilo { id: string; nome: string; artista: string; prompt: string; ordem: number; ativo: boolean; caminhoMiniatura: string; caminhoReferencia?: string }
+  export interface Estilo { id: string; nome: string; legenda: string; prompt: string; frases: string[]; ordem: number; ativo: boolean; caminhoMiniatura: string; caminhoReferencia?: string }
   export interface Catalogo { ativos(): Estilo[]; buscar(id: string): Estilo | undefined } // buscar só encontra ativos
   export function carregarCatalogo(dir: string, avisar: (msg: string) => void): Catalogo
   ```
@@ -142,29 +143,52 @@ it('ignora pasta sem miniatura e avisa', () => { /* … */ expect(avisar).toHave
 it('ignora estilo.json malformado e avisa', () => { /* JSON inválido */ })
 it('ignora estilo.json sem campo obrigatório (prompt)', () => { /* … */ })
 it('preenche caminhoReferencia só quando referencia.jpg existe', () => { /* … */ })
-it('o catálogo real tem os 4 quadros na ordem', () => {
+it('ignora estilo.json com frases vazias ou que não são texto', () => { /* frases: [] e frases: [1] → ignorados com aviso */ })
+it('o catálogo real tem os 6 estilos na ordem', () => {
   const cat = carregarCatalogo(path.resolve('../estilos'), avisar)
-  expect(cat.ativos().map(e => e.id)).toEqual(['noite-estrelada', 'girassois', 'terraco-do-cafe', 'autorretrato'])
+  expect(cat.ativos().map(e => e.id)).toEqual(['arte-grega', 'renascimento', 'cubismo', 'expressionismo', 'van-gogh', 'mona-lisa'])
+  expect(cat.buscar('van-gogh')).toMatchObject({ nome: 'Van Gogh', legenda: 'A Noite Estrelada' })
 })
 ```
 
 - [ ] **Step 3: Rodar e ver falhar.** Run: `npm --prefix servidor test` — Expected: FAIL (`carregarCatalogo` não existe).
 
-- [ ] **Step 4: Implementar `carregarCatalogo` em `servidor/src/estilos/catalogo.ts`.** Leitura síncrona; o `id` é o nome da pasta; campos obrigatórios `nome`, `artista`, `prompt` (string), `ordem` (number), `ativo` (boolean); pasta inválida → `avisar(\`Estilo "<id>" ignorado: <motivo>\`)` e segue.
+- [ ] **Step 4: Implementar `carregarCatalogo` em `servidor/src/estilos/catalogo.ts`.** Leitura síncrona; o `id` é o nome da pasta; campos obrigatórios `nome`, `legenda`, `prompt` (string), `frases` (lista não vazia de strings), `ordem` (number), `ativo` (boolean); pasta inválida → `avisar(\`Estilo "<id>" ignorado: <motivo>\`)` e segue.
 
-- [ ] **Step 5: Implementar `servidor/scripts/preparar-estilo.ts`** — uso: `npx tsx scripts/preparar-estilo.ts <imagem-do-quadro> <pasta-do-estilo>`; gera `miniatura.jpg` (lado maior 480 px, qualidade 80) e `referencia.jpg` (lado maior 1024 px, qualidade 85) com `sharp`.
+- [ ] **Step 5: Implementar `servidor/scripts/preparar-estilo.ts`** — uso: `npx tsx scripts/preparar-estilo.ts <imagem-da-obra> <pasta-do-estilo> [x,y,largura,altura]`; o recorte opcional (em pixels da imagem original, `sharp().extract`) é aplicado antes; gera `miniatura.jpg` (lado maior 480 px, qualidade 80) e `referencia.jpg` (lado maior 1024 px, qualidade 85) com `sharp`.
 
-- [ ] **Step 6: Criar os 4 estilos.** Imagens dos quadros: Wikimedia Commons (domínio público) — **pedir confirmação ao usuário antes de baixar**, informando arquivo e origem; baixar para uma pasta temporária e passar pelo `preparar-estilo.ts`. Quadros: A Noite Estrelada (1889), Girassóis (1888, National Gallery), Terraço do Café à Noite (1888), Autorretrato (1889, Musée d'Orsay). Todos com `"artista": "Vincent van Gogh"`, `"ativo": true`, `ordem` 1–4 na ordem acima. Prompts:
-  - `noite-estrelada`: "Repaint this photo as a Vincent van Gogh oil painting in the style of The Starry Night (1889): thick impasto brushstrokes, swirling deep-blue sky with glowing yellow stars and crescent moon, dynamic curving lines, richly textured paint."
-  - `girassois`: "Repaint this photo as a Vincent van Gogh oil painting in the style of Sunflowers (1888): warm chrome-yellow and ochre palette, thick impasto, bold visible brushstrokes, simple yellow background, sunflowers framing the scene."
-  - `terraco-do-cafe`: "Repaint this photo as a Vincent van Gogh oil painting in the style of Café Terrace at Night (1888): warm yellow-orange gaslight against a deep blue starry sky, cobblestone textures, thick expressive brushstrokes, strong yellow and blue contrast."
-  - `autorretrato`: "Repaint this photo as a Vincent van Gogh oil painting in the style of his Self-Portrait (1889, Musée d'Orsay): swirling pale blue-green background with rhythmic wavy brushstrokes, short directional strokes modelling the face, cool palette with orange accents, thick impasto."
+- [ ] **Step 6: Criar os 6 estilos.** **Pedir confirmação ao usuário antes de cada download**, informando arquivo, origem e licença; baixar para uma pasta temporária e passar pelo `preparar-estilo.ts`. Todos com `"ativo": true` e `ordem` 1–6 na ordem da tabela. Nenhuma pintura do próprio Picasso entra no repositório (protegidas no Brasil até o fim de 2043).
 
-- [ ] **Step 7: Escrever `estilos/LEIA-ME.md`** — passo a passo: copiar uma pasta, editar `estilo.json`, rodar `preparar-estilo.ts` com a imagem do novo quadro, `docker compose restart pintor`; `"ativo": false` para esconder.
+  | id | `nome` | `legenda` | Obra de referência (miniatura e `referencia.jpg`) |
+  |---|---|---|---|
+  | `arte-grega` | Arte Grega | Estátua de mármore | Busto ou cabeça grega de mármore do Metropolitan Museum (Open Access, CC0) |
+  | `renascimento` | Renascimento | Botticelli | *O Nascimento de Vênus* (c. 1485, Uffizi, Wikimedia Commons), recortado no rosto e no cabelo de Vênus |
+  | `cubismo` | Cubismo | Picasso | Juan Gris, *Retrato de Pablo Picasso* (1912, Art Institute of Chicago, domínio público) |
+  | `expressionismo` | Expressionismo | Munch · O Grito | Edvard Munch, *O Grito* (1893, Galeria Nacional, Oslo, Wikimedia Commons) |
+  | `van-gogh` | Van Gogh | A Noite Estrelada | *A Noite Estrelada* (1889, MoMA, Wikimedia Commons) |
+  | `mona-lisa` | Mona Lisa | Leonardo da Vinci | *Mona Lisa* (1503–1519, Louvre, Wikimedia Commons) |
 
-- [ ] **Step 8: Rodar e ver passar.** Run: `npm --prefix servidor test` — Expected: PASS (6 testes).
+  Prompts:
+  - `arte-grega`: "Transform this photo into an ancient Greek marble sculpture from the Classical period (5th century BC): the person carved as a white marble bust, smooth polished stone with subtle grey veining, hair sculpted in stylized curls, clothing as a draped chiton, soft museum lighting against a plain dark background."
+  - `renascimento`: "Repaint this photo as an Italian Renaissance tempera painting in the style of Sandro Botticelli's The Birth of Venus (c. 1485): graceful precise outlines, pale luminous skin, flowing hair in ornamental golden waves, soft pastel sea-green and pale blue background, delicate gold highlights, smooth matte surface."
+  - `cubismo`: "Repaint this photo as a Cubist painting in the style of Pablo Picasso and Juan Gris (1910s): face and figure broken into geometric planes seen from several viewpoints at once, angular facets with bold outlines, flat areas of ochre, grey, blue and muted green."
+  - `expressionismo`: "Repaint this photo as an Expressionist oil painting in the style of Edvard Munch's The Scream (1893): swirling blood-orange and red sky, long wavy rhythmic brushstrokes, dark blue fjord landscape, raw intense colors and an anxious, emotional atmosphere."
+  - `van-gogh`: "Repaint this photo as a Vincent van Gogh oil painting in the style of The Starry Night (1889): thick impasto brushstrokes, swirling deep-blue sky with glowing yellow stars and crescent moon, dynamic curving lines, richly textured paint."
+  - `mona-lisa`: "Repaint this photo as a Leonardo da Vinci Renaissance oil portrait in the style of the Mona Lisa (1503–1519): sfumato with soft smoky transitions between light and shadow, warm muted browns, olive greens and amber tones, hazy atmospheric landscape with winding paths and water in the background, aged varnish with fine craquelure."
 
-- [ ] **Step 9: Commit.** `git add .gitignore servidor estilos && git commit -m "feat(servidor): módulo de estilos com os 4 quadros"`
+  Frases da revelação (`frases`):
+  - `arte-grega`: "Escolhendo o melhor mármore…", "Esculpindo os cachos…", "Polindo a pedra…", "Subindo no pedestal…"
+  - `renascimento`: "Preparando a têmpera…", "Desenhando os contornos…", "Soltando os cabelos ao vento…", "Aplicando o ouro…"
+  - `cubismo`: "Desmontando os ângulos…", "Olhando de todos os lados ao mesmo tempo…", "Recortando os planos…", "Encaixando as formas…"
+  - `expressionismo`: "Incendiando o céu…", "Ondulando as linhas…", "Carregando nas emoções…", "Secando a tinta…"
+  - `van-gogh`: "Misturando os amarelos…", "Pintando o céu em espirais…", "Engrossando as pinceladas…", "Secando a tinta…"
+  - `mona-lisa`: "Esfumando as sombras…", "Pintando a paisagem ao fundo…", "Suavizando a luz…", "Envelhecendo o verniz…"
+
+- [ ] **Step 7: Escrever `estilos/LEIA-ME.md`** — passo a passo: copiar uma pasta, editar `estilo.json`, rodar `preparar-estilo.ts` com a imagem da obra de referência, `docker compose restart pintor`; `"ativo": false` para esconder.
+
+- [ ] **Step 8: Rodar e ver passar.** Run: `npm --prefix servidor test` — Expected: PASS (7 testes).
+
+- [ ] **Step 9: Commit.** `git add .gitignore servidor estilos && git commit -m "feat(servidor): módulo de estilos com os 6 estilos"`
 
 ---
 
@@ -221,7 +245,7 @@ it('criarProvedor recusa provedor desconhecido', () => { expect(() => criarProve
 
 - [ ] **Step 2: Rodar e ver falhar.** Run: `npm --prefix servidor test` — Expected: FAIL nos novos testes.
 
-- [ ] **Step 3: Implementar.** Instrução fixa do `montarPrompt` (texto exato): `"Keep the person's face, identity, expression, pose and the composition of the photo clearly recognizable. Output only the painting: no frame, no text, no signature."`; com referência acrescenta: `"The second image is the original painting: use it only as a style reference, do not copy its content."`. O falso aplica `sharp(foto).modulate({ saturation: 2 }).blur(2).jpeg()` após `atrasoMs` (padrão 0). `lerConfig` lança `Error('Variável <NOME> inválida: <valor>')`.
+- [ ] **Step 3: Implementar.** Instrução fixa do `montarPrompt` (texto exato): `"Keep the person's face, identity, expression, pose and the composition of the photo clearly recognizable. Output only the artwork: no frame, no text, no signature."`; com referência acrescenta: `"The second image is a reference artwork: use it only as a style reference, do not copy its content."`. O falso aplica `sharp(foto).modulate({ saturation: 2 }).blur(2).jpeg()` após `atrasoMs` (padrão 0). `lerConfig` lança `Error('Variável <NOME> inválida: <valor>')`.
 
 - [ ] **Step 4: Rodar e ver passar.** Run: `npm --prefix servidor test` — Expected: PASS.
 
@@ -251,7 +275,7 @@ Pode rodar em paralelo às Tasks 4–14, que usam o provedor `falso`. Precisa do
 
 - [ ] **Step 1: Conferir a documentação atual do Vertex AI** para os modelos de imagem Gemini: ids de Nano Banana 2.1, 2 e Pro no Vertex, região suportada (`global` ou outra), formato da resposta e a configuração do `@google/genai` com Application Default Credentials.
 
-- [ ] **Step 2: Chamada de teste (verificação de acesso, antes de qualquer outra coisa).** `servidor/scripts/teste-vertex.ts` envia uma foto de teste com o estilo `noite-estrelada` para cada um dos 3 modelos e salva as imagens em `servidor/comparativo/teste/`. Run: `npm --prefix servidor run teste-vertex`. Expected: 3 imagens salvas e, no Google Cloud (Faturamento → Créditos), o valor descontado do crédito da avaliação. Se algum modelo for negado (permissão, modelo indisponível na avaliação, cobrança fora do crédito): **parar e avisar o usuário** — o plano B (fal.ai) vira uma nova tarefa.
+- [ ] **Step 2: Chamada de teste (verificação de acesso, antes de qualquer outra coisa).** `servidor/scripts/teste-vertex.ts` envia uma foto de teste com o estilo `van-gogh` para cada um dos 3 modelos e salva as imagens em `servidor/comparativo/teste/`. Run: `npm --prefix servidor run teste-vertex`. Expected: 3 imagens salvas e, no Google Cloud (Faturamento → Créditos), o valor descontado do crédito da avaliação. Se algum modelo for negado (permissão, modelo indisponível na avaliação, cobrança fora do crédito): **parar e avisar o usuário** — o plano B (fal.ai) vira uma nova tarefa.
 
 - [ ] **Step 3: Escrever os testes** (respostas de exemplo montadas a partir da documentação conferida):
 
@@ -267,7 +291,7 @@ it('resposta só com texto vira recusa', () => { expect(() => interpretarVertex(
 
 - [ ] **Step 5: Implementar `servidor/scripts/comparativo.ts`** (`npm --prefix servidor run comparativo -- <modelo1> <modelo2> <modelo3>`): lê `servidor/comparativo/fotos/*.jpg` (passadas por `prepararFoto` se a Task 6 já existir; senão, redimensionadas a 1600 px), roda cada modelo × estilo × foto com no máximo 3 chamadas simultâneas, grava em `servidor/comparativo/resultado/<modelo>/<estilo>/<foto>.jpg` e gera `servidor/comparativo/resultado/index.html`: uma linha por foto × estilo, colunas "original" + um modelo por coluna, rodapé com tempo médio, falhas e recusas por modelo.
 
-- [ ] **Step 6: Rodar o comparativo com o usuário.** Antes, informar o número de chamadas (10 fotos × 4 estilos × 3 modelos = 120, cerca de US$ 10 do crédito) e pedir ok. Abrir o `index.html`; o usuário escolhe o modelo. Registrar em `docs/decisoes.md`: modelo, tempo médio, custo por foto e a estimativa para 2.000 fotos comparada ao saldo do crédito.
+- [ ] **Step 6: Rodar o comparativo com o usuário.** Antes, informar o número de chamadas (10 fotos × 6 estilos × 3 modelos = 180, cerca de US$ 14 do crédito) e pedir ok. Abrir o `index.html`; o usuário escolhe o modelo. Registrar em `docs/decisoes.md`: modelo, tempo médio, custo por foto e a estimativa para 2.000 fotos comparada ao saldo do crédito.
 
 - [ ] **Step 7: Commit.** `git commit -m "feat(servidor): provedor Vertex AI com login OAuth e comparativo"`
 
@@ -421,7 +445,8 @@ it('paraJpeg converte PNG', async () => { expect((await sharp(await paraJpeg(png
 it('ERROS tem os status da spec', () => { expect(ERROS.EVENTO_INATIVO.status).toBe(503); expect(ERROS.RECUSADA.status).toBe(422); expect(ERROS.TEMPO_ESGOTADO.status).toBe(504); expect(ERROS.TETO_DIARIO.mensagem).toBe('A pintora foi descansar. Volte amanhã!') })
 it('GET /api/estilos lista ativos sem expor o prompt', async () => {
   const r = await app.inject('/api/estilos')
-  expect(r.json()).toEqual([{ id: 'noite-estrelada', nome: 'Noite Estrelada', artista: 'Vincent van Gogh', miniaturaUrl: '/api/estilos/noite-estrelada/miniatura' }, /* … 3 outros */])
+  expect(r.json()).toHaveLength(6)
+  expect(r.json()[0]).toEqual({ id: 'arte-grega', nome: 'Arte Grega', legenda: 'Estátua de mármore', frases: ['Escolhendo o melhor mármore…', 'Esculpindo os cachos…', 'Polindo a pedra…', 'Subindo no pedestal…'], miniaturaUrl: '/api/estilos/arte-grega/miniatura' })
 })
 it('GET miniatura devolve JPEG; estilo inexistente dá 404 ESTILO_INVALIDO', async () => { /* content-type image/jpeg; 404 { erro: 'ESTILO_INVALIDO' } */ })
 it('GET /api/saude', async () => { expect((await app.inject('/api/saude')).json()).toEqual({ ok: true, eventoAtivo: true, pinturasHoje: 0, tetoDiario: 1000, fila: 0 }) })
@@ -454,11 +479,11 @@ Ordem (Decisão 1): interruptor → aceite (`termosVersao` não vazio e `aceiteE
 
 ```ts
 it('sucesso: devolve JPEG, código e grava o acervo sem IP', async () => {
-  const r = await pintar({ estiloId: 'girassois' })
+  const r = await pintar({ estiloId: 'van-gogh' })
   expect(r.statusCode).toBe(200); expect(r.headers['content-type']).toBe('image/jpeg')
   const codigo = r.headers['x-codigo-obra'] as string; expect(codigo).toMatch(/^[2-9A-HJKMNP-Z]{3}-[2-9A-HJKMNP-Z]{3}$/)
   const info = await lerInfo(acervoDir, codigo)
-  expect(info).toMatchObject({ estiloId: 'girassois', estiloNome: 'Girassóis', provedor: 'falso', termosVersao: 'v1' }); expect(info).not.toHaveProperty('ip')
+  expect(info).toMatchObject({ estiloId: 'van-gogh', estiloNome: 'Van Gogh', provedor: 'falso', termosVersao: 'v1' }); expect(info).not.toHaveProperty('ip')
 })
 it('evento desligado → 503 EVENTO_INATIVO sem chamar a IA', async () => { /* eventoAtivo: false; espião em pintar não chamado */ })
 it('sem aceite → 400 ACEITE_AUSENTE', async () => { /* sem termosVersao */ })
@@ -517,7 +542,7 @@ it('saída PNG da IA vira JPEG', async () => { /* provedor devolve PNG → conte
   export function lerAceite(): Aceite | null             // null se a versão gravada ≠ CONFIG.termosVersao
   export function obterIdAparelho(): string              // crypto.randomUUID(), persistido
   // api.ts
-  export interface EstiloPublico { id: string; nome: string; artista: string; miniaturaUrl: string }
+  export interface EstiloPublico { id: string; nome: string; legenda: string; frases: string[]; miniaturaUrl: string }
   export interface ResultadoPintura { imagem: Blob; codigo: string | null }
   export class ErroPintura extends Error { constructor(public readonly codigo: string, mensagem: string) }
   export function buscarEstilos(): Promise<EstiloPublico[]>
@@ -604,25 +629,25 @@ Decide a direção de arte antes de qualquer tela (Decisão 11). **REQUIRED SUB-
   - `docs/direcao-visual.md` com as seções: Inventário, Argumento, Direção (nome, seed, ajustes e motivos), Ideia, Roteiro de palavras, Créditos das imagens, Crítica (Task 14), Relatório (Task 14).
 
 **O que já está decidido para o passo 1 do skill:**
-- Imagens reais disponíveis: os 4 quadros (domínio público, Wikimedia Commons, baixados na Task 1). Não são fotos do projeto, então ficam fora de `--have`. Não há fotos próprias da escola nem do estande.
-- Textos fixos: os das Tasks 12–13 e as mensagens da seção 7 da spec ficam exatamente como estão. O roteiro de palavras do passo 5 cobre só o resto: a frase de apoio de cada tela, a legenda de cada quadro (título, ano, museu), os textos de `/termos` além dos itens obrigatórios e a linha de créditos.
-- Pontos de partida para o inventário (o skill pede de 8 a 12 itens; conferir, completar e escolher, não só copiar): os 4 quadros e onde estão hoje (MoMA, Nova York; National Gallery, Londres; Kröller-Müller, Otterlo; Musée d'Orsay, Paris); Arles e Saint-Rémy, 1888–1889; o empasto visto de perto; a paleta dele (amarelo de cromo, azul da Prússia, cobalto); as cartas a Theo, com esboços; a etiqueta de parede do museu (título, ano, técnica, número de inventário), parente do código da obra; a moldura dourada; o estande da escola e o cartaz com o QR code.
+- Imagens reais disponíveis: as 6 obras de referência dos estilos (domínio público ou CC0, baixadas na Task 1). Não são fotos do projeto, então ficam fora de `--have`. Não há fotos próprias da escola nem do estande.
+- Textos fixos: os das Tasks 12–13, o nome, a legenda e as frases de cada estilo (`estilo.json`) e as mensagens da seção 7 da spec ficam exatamente como estão. O roteiro de palavras do passo 5 cobre só o resto: a frase de apoio de cada tela, os créditos de cada obra de referência (título, autor, ano, museu), os textos de `/termos` além dos itens obrigatórios e a linha de créditos.
+- Pontos de partida para o inventário (o skill pede de 8 a 12 itens; conferir, completar e escolher, não só copiar): a linha do tempo dos 6 estilos (Grécia clássica, séc. V a.C.; Botticelli, c. 1485; Mona Lisa, 1503–1519; Van Gogh, 1889; Munch, 1893; cubismo, anos 1910) e onde as obras estão hoje (Met, Nova York; Uffizi, Florença; Louvre, Paris; MoMA, Nova York; Galeria Nacional, Oslo; Art Institute of Chicago); as técnicas vistas de perto (mármore polido, têmpera, sfumato, empasto, planos geométricos); o pedestal e a sala de museu; a etiqueta de parede do museu (título, ano, técnica, número de inventário), parente do código da obra; a moldura dourada; o estande da escola e o cartaz com o QR code.
 
 - [ ] **Step 1: Inventário e argumento** (passos 1 e 2 do skill) em `docs/direcao-visual.md`: o inventário, depois uma linha de afirmação e prova por tela (início, quadros, foto, revelação, resultado, erro) e por `/termos`.
 
-- [ ] **Step 2: Sortear três direções.** Run (em `site/`): `node <skill>/scripts/draw.mjs --sector culture --brief "school booth where visitors take a selfie on their phone and see it repainted as a Van Gogh painting" --sections <papéis na ordem do argumento; ponto de partida: gallery,showcase,footer> --options 3`. Escolher a que melhor carrega um item do inventário (não a mais familiar) e anotar o motivo. Depois, o mesmo comando sem `--options` e com `--direction <id>` — Expected: grava `.taste-skill/direction.json` e imprime a folha de direção.
+- [ ] **Step 2: Sortear três direções.** Run (em `site/`): `node <skill>/scripts/draw.mjs --sector culture --brief "school booth where visitors take a selfie on their phone and see it remade in one of six art styles, from a Greek marble statue to Cubism, Van Gogh and the Mona Lisa" --sections <papéis na ordem do argumento; ponto de partida: gallery,showcase,footer> --options 3`. Escolher a que melhor carrega um item do inventário (não a mais familiar) e anotar o motivo. Depois, o mesmo comando sem `--options` e com `--direction <id>` — Expected: grava `.taste-skill/direction.json` e imprime a folha de direção.
 
 - [ ] **Step 3: Ajustes da folha**, cada um anotado com o motivo:
-  - Paleta: os quadros têm cores próprias inconfundíveis; vale manter as proporções sorteadas e tirar as cores dos quadros (passo 3 do skill). Nenhuma cor pode cair na paleta proibida (fundo creme com terracota, violeta, índigo); o azul-noite da Noite Estrelada pode cair em índigo.
+  - Paleta: as 6 obras têm cores fortes e muito diferentes entre si (mármore branco, ouro de Botticelli, laranja do Grito, azul da Noite Estrelada); a interface fica neutra, de sala de museu, para não brigar com nenhuma delas, mantendo as proporções sorteadas (passo 3 do skill). Nenhuma cor pode cair na paleta proibida (fundo creme com terracota, violeta, índigo).
   - Cenas de rolagem: as telas do fluxo cabem numa tela e não rolam. Se a folha trouxer cenas, usar no máximo em `/termos` ou dispensar, anotando por quê.
   - Fonte: uma família, duas no máximo, em WOFF2 em `site/public/fontes/` (Decisão 13), com `font-display: swap`.
   - Qualquer `--redraw` só com motivo que caiba numa frase (o skill lista os válidos).
 
-- [ ] **Step 4: Ideia** (passo 4). Escrever "Nesta experiência, **[algo do inventário]** vira **[o recurso que a direção pede]**." e aplicar o teste do concorrente: se a frase servir para qualquer app de filtro "estilo Van Gogh", ela é da categoria, não deste projeto; refazer.
+- [ ] **Step 4: Ideia** (passo 4). Escrever "Nesta experiência, **[algo do inventário]** vira **[o recurso que a direção pede]**." e aplicar o teste do concorrente: se a frase servir para qualquer app de filtro artístico, ela é da categoria, não deste projeto; refazer.
 
 - [ ] **Step 5: Roteiro de palavras** (passo 5, `references/copy.md`): o texto de todas as telas e de `/termos`, com os textos fixos copiados sem mudança e os novos marcados. Todo título cabe em 2 linhas a 390 px.
 
-- [ ] **Step 6: Imagens achadas (só se a direção pedir).** Para imagens além dos quadros (o empasto de perto, uma carta a Theo, uma moldura de museu como referência), buscar com `node <skill>/scripts/assets.mjs "<busca>"`. **Antes de cada `--get`, pedir confirmação ao usuário**, informando arquivo, origem e tamanho; baixar com `--to public/imagens`. Otimizar (lado maior ≤ 1600 px, ≤ 250 KB cada) e copiar os créditos (`assets.mjs --credits --to public/imagens`) para `docs/direcao-visual.md`. Se a composição mostrar os quadros com mais de ~240 px de largura, regenerar as miniaturas com lado maior 1080 px (ajustar `preparar-estilo.ts` da Task 1).
+- [ ] **Step 6: Imagens achadas (só se a direção pedir).** Para imagens além das obras de referência (mármore ou empasto de perto, uma sala de museu, uma moldura de museu como referência), buscar com `node <skill>/scripts/assets.mjs "<busca>"`. **Antes de cada `--get`, pedir confirmação ao usuário**, informando arquivo, origem e tamanho; baixar com `--to public/imagens`. Otimizar (lado maior ≤ 1600 px, ≤ 250 KB cada) e copiar os créditos (`assets.mjs --credits --to public/imagens`) para `docs/direcao-visual.md`. Se a composição mostrar as obras com mais de ~240 px de largura, regenerar as miniaturas com lado maior 1080 px (ajustar `preparar-estilo.ts` da Task 1).
 
 - [ ] **Step 7: Tokens.** Criar `site/src/estilos.css` com os papéis da folha (o `<skill>/assets/base.css` pode servir de base) e as `@font-face`.
 
@@ -647,7 +672,7 @@ Decide a direção de arte antes de qualquer tela (Decisão 11). **REQUIRED SUB-
   export function irPara(tela: 'inicio' | 'quadros' | 'foto' | 'revelacao' | 'resultado' | 'erro', dados?: { erro?: ErroPintura }): void
   ```
   `data-testid`: `botao-criar`, `link-termos`, `aviso-evento-inativo`, `cartao-estilo` (com `data-estilo-id`), `botao-tirar-foto`, `input-foto`.
-  Textos: título "Vire uma pintura de Van Gogh"; resumo "Tire uma foto e veja ela virar uma pintura de Van Gogh. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros."; link "Ler os termos de uso de imagem"; botão "Quero criar minha foto"; quadros "Escolha o seu quadro"; foto "Tirar foto"; evento inativo "Esta experiência está disponível no estande.".
+  Textos: título "Vire uma obra de arte"; resumo "Tire uma foto e veja ela virar uma obra de arte. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros."; link "Ler os termos de uso de imagem"; botão "Quero criar minha foto"; quadros "Escolha o estilo da sua obra"; foto "Tirar foto"; evento inativo "Esta experiência está disponível no estande.".
 
 - [ ] **Step 1: Configurar o Playwright.** Projetos `iphone` (`devices['iPhone 13']`, WebKit) e `android` (`devices['Pixel 7']`, Chromium). `webServer`: (1) `npm --prefix ../servidor run dev` com `PROVEDOR=falso`, `EVENTO_ATIVO=true`, `ACERVO_DIR=<site/e2e/.acervo>`, `ESTILOS_DIR=../estilos`, aguardando `http://localhost:3000/api/saude`; (2) `npm run dev -- --port 5173`. `globalSetup` apaga `e2e/.acervo`. Instalar navegadores: `npx playwright install chromium webkit`.
 
@@ -655,18 +680,18 @@ Decide a direção de arte antes de qualquer tela (Decisão 11). **REQUIRED SUB-
 
 ```ts
 test('início mostra o resumo e abre os termos', async ({ page }) => {
-  await page.goto('/'); await expect(page.getByRole('heading', { name: 'Vire uma pintura de Van Gogh' })).toBeVisible()
+  await page.goto('/'); await expect(page.getByRole('heading', { name: 'Vire uma obra de arte' })).toBeVisible()
   await expect(page.getByText('18 anos ou mais')).toBeVisible()
   await page.getByTestId('link-termos').click(); await expect(page).toHaveURL(/\/termos/)
   await expect(page.getByRole('heading', { name: 'Termos de uso de imagem' })).toBeVisible(); await expect(page.getByText(/exclusão/)).toBeVisible()
 })
-test('aceite grava v1 e leva aos 4 quadros em ordem', async ({ page }) => {
+test('aceite grava v1 e leva aos 6 estilos em ordem', async ({ page }) => {
   await page.goto('/'); await page.getByTestId('botao-criar').click()
-  await expect(page.getByTestId('cartao-estilo')).toHaveCount(4); await expect(page.getByTestId('cartao-estilo').first()).toContainText('Noite Estrelada')
+  await expect(page.getByTestId('cartao-estilo')).toHaveCount(6); await expect(page.getByTestId('cartao-estilo').first()).toContainText('Arte Grega'); await expect(page.getByTestId('cartao-estilo').first()).toContainText('Estátua de mármore')
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('aceite')!)).termosVersao).toBe('v1')
 })
-test('escolher um quadro abre a tela da câmera nativa', async ({ page }) => {
-  /* … clicar cartão girassois */ const input = page.getByTestId('input-foto')
+test('escolher um estilo abre a tela da câmera nativa', async ({ page }) => {
+  /* … clicar cartão van-gogh */ const input = page.getByTestId('input-foto')
   await expect(input).toHaveAttribute('capture', 'user'); await expect(input).toHaveAttribute('accept', 'image/*')
 })
 test('evento desligado mostra o aviso e esconde o botão', async ({ page }) => {
@@ -677,7 +702,7 @@ test('evento desligado mostra o aviso e esconde o botão', async ({ page }) => {
 
 - [ ] **Step 3: Rodar e ver falhar.** Run: `npm --prefix site run e2e -- inicio` — Expected: FAIL.
 
-- [ ] **Step 4: Implementar as telas e `termos.html`.** Termos (versão `v1`, preenchidos com `CONFIG.escola` e `CONFIG.emailContato`) cobrindo exatamente os itens da spec 6.2: quem guarda; o que é guardado (foto real e pintura); finalidade (eventos e divulgação da escola); processamento por provedor de IA externo; prazo de até 5 anos; declaração de maioridade; pedido de exclusão por e-mail com o código da obra. Botão "Tirar foto" aciona o `<input type="file" accept="image/*" capture="user" hidden>`. Visual: carregar o skill `design-taste-frontend` e construir pelo passo 6 dele ("Build it, still"), seguindo a folha da Task 11 (reler com `node <skill>/scripts/draw.mjs --show`, em `site/`), os tokens de `estilos.css` e o roteiro de palavras de `docs/direcao-visual.md`. Celular primeiro (390 px). `cartao-estilo` é o nome do teste, não da forma: a escolha do quadro segue o blueprint sorteado e mostra os quadros grandes, nunca uma fileira de cartões iguais com ícone. `/termos` ganha a seção "Créditos das imagens" (cada quadro com título, ano, museu, Wikimedia Commons, domínio público, e cada imagem achada na Task 11); o início tem uma linha curta de créditos no pé, com link para ela.
+- [ ] **Step 4: Implementar as telas e `termos.html`.** Termos (versão `v1`, preenchidos com `CONFIG.escola` e `CONFIG.emailContato`) cobrindo exatamente os itens da spec 6.2: quem guarda; o que é guardado (foto real e pintura); finalidade (eventos e divulgação da escola); processamento por provedor de IA externo; prazo de até 5 anos; declaração de maioridade; pedido de exclusão por e-mail com o código da obra. Botão "Tirar foto" aciona o `<input type="file" accept="image/*" capture="user" hidden>`. Visual: carregar o skill `design-taste-frontend` e construir pelo passo 6 dele ("Build it, still"), seguindo a folha da Task 11 (reler com `node <skill>/scripts/draw.mjs --show`, em `site/`), os tokens de `estilos.css` e o roteiro de palavras de `docs/direcao-visual.md`. Celular primeiro (390 px). `cartao-estilo` é o nome do teste, não da forma: a escolha do estilo segue o blueprint sorteado e mostra as obras grandes, cada uma com o nome e a legenda do estilo, nunca uma fileira de cartões iguais com ícone; os 6 estilos cabem a 390 px sem esconder nenhum. `/termos` ganha a seção "Créditos das imagens" (cada obra de referência com título, autor, ano, museu, origem e licença, e cada imagem achada na Task 11); o início tem uma linha curta de créditos no pé, com link para ela.
 
 - [ ] **Step 5: Vitrine (Decisão 12).** `site/vitrine.html` + `site/src/vitrine.ts`: lê `?tela=` e monta a tela com estado fixo, sem passar pelo fluxo. Estados desta task: `inicio`, `inicio&evento=inativo`, `quadros`, `foto` (a Task 13 acrescenta os outros). Os estilos vêm da API (servidor em modo falso); o resto é fixo. `vite.config.ts` só inclui `vitrine.html` em `build.rollupOptions.input` quando `mode === 'vitrine'`; script `vitrine`: `vite build --mode vitrine --outDir dist-vitrine && vite preview --outDir dist-vitrine --port 4173 --strictPort` (o `preview` herda o proxy de `/api`). Run: `npm --prefix site run build` — Expected: `site/dist/vitrine.html` não existe.
 
@@ -704,9 +729,9 @@ test('evento desligado mostra o aviso e esconde o botão', async ({ page }) => {
   export function compartilhar(imagem: Blob, nomeArquivo: string): Promise<'compartilhado' | 'cancelado' | 'indisponivel'>
   export function salvar(imagem: Blob, nomeArquivo: string): void      // iOS: sobreposição com a imagem e "Toque e segure a imagem para salvar"; demais: <a download>
   ```
-  `data-testid`: `tela-revelacao`, `imagem-resultado`, `opcao-com-moldura`, `opcao-so-pintura`, `botao-compartilhar`, `botao-salvar`, `codigo-obra`, `botao-pintar-de-novo`, `tela-erro`, `mensagem-erro`, `botao-tentar-de-novo`, `botao-outra-foto`, `aviso-evento-inativo`.
+  `data-testid`: `tela-revelacao`, `frase-revelacao`, `imagem-resultado`, `opcao-com-moldura`, `opcao-so-pintura`, `botao-compartilhar`, `botao-salvar`, `codigo-obra`, `botao-pintar-de-novo`, `tela-erro`, `mensagem-erro`, `botao-tentar-de-novo`, `botao-outra-foto`, `aviso-evento-inativo`.
   Arquivos: `pintura-moldura-<código>.jpg` e `pintura-<código>.jpg` (sem código: `pintura-moldura.jpg` / `pintura.jpg`).
-  Frases da revelação, alternando: "Misturando os amarelos…", "Pintando o céu em espirais…", "Engrossando as pinceladas…", "Secando a tinta…". Duração mínima 4 s (Decisão 6). Resultado abre em "Com moldura" (Decisão 7); `codigo-obra` mostra "Código da obra: <código>" e some sem código.
+  Frases da revelação: as do estilo escolhido (`estado.estilo.frases`), alternando. Duração mínima 4 s (Decisão 6). Resultado abre em "Com moldura" (Decisão 7); `codigo-obra` mostra "Código da obra: <código>" e some sem código.
   Ações por erro: `EVENTO_INATIVO` → aviso, sem botão; `FOTO_INVALIDA` e `RECUSADA` → `botao-outra-foto` (volta à tela de foto); `ESTILO_INVALIDO` → volta aos quadros; `ACEITE_AUSENTE` → volta ao início; demais → `botao-tentar-de-novo` reenviando `estado.foto`. Botões de envio ficam desabilitados enquanto há pedido em andamento.
 
 - [ ] **Step 1: Escrever os testes:**
@@ -717,13 +742,14 @@ it('ehIOS', () => { expect(ehIOS('Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like M
 it('compartilhar sem suporte a arquivos devolve indisponivel', async () => { vi.stubGlobal('navigator', { ...navigator, canShare: () => false }); expect(await compartilhar(blob, 'a.jpg')).toBe('indisponivel') })
 // pintura.spec.ts
 test('fluxo completo grava o acervo', async ({ page }) => {
-  await aceitarEEscolher(page, 'girassois'); const inicio = Date.now()
+  await aceitarEEscolher(page, 'van-gogh'); const inicio = Date.now()
   await page.getByTestId('input-foto').setInputFiles('test/fixtures/selfie.jpg')
-  await expect(page.getByTestId('tela-revelacao')).toBeVisible(); await expect(page.getByTestId('imagem-resultado')).toBeVisible({ timeout: 20_000 })
+  await expect(page.getByTestId('tela-revelacao')).toBeVisible(); await expect(page.getByTestId('frase-revelacao')).toHaveText(/Misturando os amarelos…|Pintando o céu em espirais…|Engrossando as pinceladas…|Secando a tinta…/)
+  await expect(page.getByTestId('imagem-resultado')).toBeVisible({ timeout: 20_000 })
   expect(Date.now() - inicio).toBeGreaterThanOrEqual(4000)
   const codigo = (await page.getByTestId('codigo-obra').textContent())!.replace('Código da obra: ', '')
   expect(codigo).toMatch(/^[2-9A-HJKMNP-Z]{3}-[2-9A-HJKMNP-Z]{3}$/)
-  const info = lerInfoDoAcervo('e2e/.acervo', codigo); expect(info).toMatchObject({ estiloId: 'girassois', termosVersao: 'v1' })
+  const info = lerInfoDoAcervo('e2e/.acervo', codigo); expect(info).toMatchObject({ estiloId: 'van-gogh', termosVersao: 'v1' })
 })
 test('alternar para "Só a pintura" troca a imagem', async ({ page }) => { /* src muda e a imagem fica menor que a com moldura */ })
 test('compartilhar envia o arquivo com moldura', async ({ page }) => {
@@ -732,7 +758,7 @@ test('compartilhar envia o arquivo com moldura', async ({ page }) => {
 })
 test('salvar no Android baixa o arquivo', async ({ page }, info) => { test.skip(info.project.name !== 'android'); /* waitForEvent('download') → suggestedFilename() === `pintura-moldura-${codigo}.jpg` */ })
 test('salvar no iPhone mostra a dica', async ({ page }, info) => { test.skip(info.project.name !== 'iphone'); /* texto "Toque e segure a imagem para salvar" */ })
-test('pintar de novo volta aos quadros', async ({ page }) => { /* após o resultado, clicar botao-pintar-de-novo */ await expect(page.getByTestId('cartao-estilo')).toHaveCount(4) })
+test('pintar de novo volta aos quadros', async ({ page }) => { /* após o resultado, clicar botao-pintar-de-novo */ await expect(page.getByTestId('cartao-estilo')).toHaveCount(6) })
 test('erro de limite: tentar de novo reenvia a mesma foto', async ({ page }) => {
   const tamanhos: number[] = []; let n = 0
   await page.route('**/api/pintar', async r => { tamanhos.push(r.request().postDataBuffer()!.length); if (n++ === 0) return r.fulfill({ status: 429, json: { erro: 'LIMITE_APARELHO', mensagem: 'Calma, artista! Espere alguns minutinhos para pintar de novo.' } }); return r.continue() })

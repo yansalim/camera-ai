@@ -1,6 +1,6 @@
 # camera-ai
 
-Projeto de estudo de **IA generativa de imagens**: um site aberto por QR code em que a pessoa tira uma foto com o celular e recebe essa foto repintada no estilo de um quadro de Van Gogh.
+Projeto de estudo de **IA generativa de imagens**: um site aberto por QR code em que a pessoa tira uma foto com o celular e recebe essa foto refeita em um de 6 estilos de arte: Arte Grega, Renascimento, Cubismo, Expressionismo, Van Gogh ou Mona Lisa.
 
 > **Status:** em planejamento. A [especificação](docs/superpowers/specs/2026-10-27-experiencia-van-gogh-qrcode-design.md) e o [plano de implementação](docs/superpowers/plans/2026-10-27-experiencia-van-gogh-qrcode.md) estão prontos; o código será construído seguindo o plano. Os comandos abaixo descrevem como o projeto vai funcionar quando as etapas estiverem concluídas.
 
@@ -9,23 +9,23 @@ Projeto de estudo de **IA generativa de imagens**: um site aberto por QR code em
 O projeto é um exercício prático para aprender a usar IA generativa num produto real, de ponta a ponta:
 
 - **Imagem para imagem:** enviar uma foto e um prompt a um modelo de edição de imagem e receber a mesma cena em outro estilo, com o rosto ainda reconhecível.
-- **Prompt de estilo:** cada quadro tem seu próprio prompt e, opcionalmente, uma imagem de referência.
+- **Prompt de estilo:** cada estilo tem seu próprio prompt e, opcionalmente, uma imagem de referência.
 - **Comparar provedores:** um adaptador único permite trocar de modelo por variável de ambiente e rodar um teste comparativo lado a lado (qualidade, tempo e custo).
 - **Operar IA com custo sob controle:** fila de chamadas, limites por aparelho e por IP, teto diário e um interruptor para ligar e desligar a experiência.
 - **Entregar no celular sem app:** site estático, câmera nativa do aparelho e compartilhamento pelo menu do próprio celular.
 
-O cenário de uso é um estande de evento: um QR code impresso leva ao site e cada visitante sai com uma "pintura" sua para compartilhar.
+O cenário de uso é um estande de evento: um QR code impresso leva ao site e cada visitante sai com uma "obra de arte" sua para compartilhar.
 
 ## Como funciona
 
 ### Fluxo no celular
 
 1. A pessoa lê o QR code e abre o site, sem instalar nada.
-2. Escolhe um quadro: Noite Estrelada, Girassóis, Terraço do Café à Noite ou Autorretrato (1889).
+2. Escolhe um estilo: Arte Grega (estátua de mármore), Renascimento (Botticelli), Cubismo (Picasso), Expressionismo (Munch, *O Grito*), Van Gogh (*A Noite Estrelada*) ou Mona Lisa (Leonardo da Vinci).
 3. Toca em **Tirar foto**, que abre a câmera nativa do celular.
 4. O site corrige a rotação, reduz a foto para no máximo 1600 px e envia um JPEG de cerca de 300 a 500 KB.
-5. Enquanto a IA trabalha (5 a 20 s), uma animação de pinceladas "pinta" a foto na tela.
-6. A pintura aparece com ou sem uma moldura dourada, desenhada no próprio celular, pronta para **compartilhar** ou **salvar**.
+5. Enquanto a IA trabalha (5 a 20 s), uma animação de pinceladas "pinta" a foto na tela, com frases próprias do estilo escolhido.
+6. A obra aparece com ou sem uma moldura dourada, desenhada no próprio celular, pronta para **compartilhar** ou **salvar**.
 
 ### Arquitetura
 
@@ -35,34 +35,34 @@ flowchart LR
   subgraph vps["VPS · Docker Compose"]
     caddy["caddy<br/>HTTPS automático"] -- "/" --> site["site estático<br/>(build do Vite)"]
     caddy -- "/api/*" --> pintor["pintor<br/>Node.js + Fastify"]
-    pintor --> estilos[("estilos/<br/>catálogo de quadros")]
+    pintor --> estilos[("estilos/<br/>catálogo de estilos")]
     pintor --> acervo[("dados/acervo/<br/>foto + pintura")]
   end
-  pintor -- "foto + prompt" --> ia["API de IA generativa<br/>de imagem"]
+  pintor -- "foto + prompt" --> ia["Google Cloud Vertex AI<br/>(modelos de imagem Gemini)"]
 ```
 
 | Parte | Tecnologia | Papel |
 |---|---|---|
 | `site/` | Vite + TypeScript, sem framework | Telas, preparo da foto, chamada à API, moldura, compartilhar e salvar |
 | `servidor/` (serviço "pintor") | Node.js 22, Fastify, `sharp` | Valida a foto, aplica as proteções, chama a IA e grava o acervo |
-| `estilos/` | Pastas com JSON e imagens | Catálogo de quadros, separado do código |
+| `estilos/` | Pastas com JSON e imagens | Catálogo de estilos, separado do código |
 | `deploy/` | Docker Compose + Caddy | HTTPS, arquivos do site e proxy para a API |
 
-A chave da API de IA fica só no servidor, em variável de ambiente; o site nunca a recebe.
+As credenciais da IA (o login OAuth do Google Cloud) ficam só no servidor; o site nunca as recebe.
 
 ### API do pintor
 
 | Método | Rota | Função |
 |---|---|---|
-| `GET` | `/api/estilos` | Lista os quadros ativos, em ordem |
-| `GET` | `/api/estilos/:id/miniatura` | Miniatura de um quadro |
+| `GET` | `/api/estilos` | Lista os estilos ativos, em ordem, com nome, legenda e frases da animação |
+| `GET` | `/api/estilos/:id/miniatura` | Miniatura de um estilo |
 | `POST` | `/api/pintar` | Recebe a foto e devolve a pintura (`image/jpeg`) com o cabeçalho `X-Codigo-Obra` |
 | `GET` | `/api/saude` | Estado do serviço: evento ativo, pinturas do dia, teto e tamanho da fila |
 
 O caminho de um pedido em `POST /api/pintar`:
 
 ```
-foto ─▶ evento ativo? ─▶ pedido válido? (quadro existe, foto ≤ 5 MB, reencode sem metadados)
+foto ─▶ evento ativo? ─▶ pedido válido? (estilo existe, foto ≤ 5 MB, reencode sem metadados)
      ─▶ limite por aparelho e por IP ─▶ teto diário ─▶ fila (5 chamadas simultâneas)
      ─▶ provedor de IA (1 nova tentativa em falha temporária, até 90 s no total)
      ─▶ grava no acervo ─▶ responde a pintura + código da obra
@@ -72,11 +72,11 @@ Quando algo falha, a resposta é um JSON `{ erro, mensagem }` com uma mensagem a
 
 ### Módulo de estilos
 
-Cada quadro é uma pasta em `estilos/`; o nome da pasta é o `id` do estilo.
+Cada estilo é uma pasta em `estilos/`; o nome da pasta é o `id` do estilo. Um estilo pode ser um movimento (Cubismo), um artista (Van Gogh) ou uma obra (Mona Lisa).
 
 ```
 estilos/
-  noite-estrelada/
+  arte-grega/  renascimento/  cubismo/  expressionismo/  van-gogh/  mona-lisa/
     estilo.json
     miniatura.jpg
     referencia.jpg      (opcional, enviada ao modelo como referência de estilo)
@@ -84,16 +84,19 @@ estilos/
 
 ```json
 {
-  "nome": "Noite Estrelada",
-  "artista": "Vincent van Gogh",
+  "nome": "Van Gogh",
+  "legenda": "A Noite Estrelada",
   "prompt": "Repaint this photo as a Vincent van Gogh oil painting in the style of The Starry Night (1889)...",
-  "ordem": 1,
+  "frases": ["Misturando os amarelos…", "Pintando o céu em espirais…", "Engrossando as pinceladas…", "Secando a tinta…"],
+  "ordem": 5,
   "ativo": true
 }
 ```
 
-- Para incluir um quadro: copie uma pasta, edite o `estilo.json`, gere as imagens com `npx tsx scripts/preparar-estilo.ts <imagem-do-quadro> <pasta-do-estilo>` (dentro de `servidor/`) e reinicie o pintor.
-- `"ativo": false` esconde o quadro sem apagá-lo.
+- `legenda` é a linha abaixo do nome no cartão; `frases` alternam na tela enquanto a IA trabalha.
+- Para incluir um estilo: copie uma pasta, edite o `estilo.json`, gere as imagens com `npx tsx scripts/preparar-estilo.ts <imagem-da-obra> <pasta-do-estilo> [x,y,largura,altura]` (dentro de `servidor/`; o recorte é opcional) e reinicie o pintor.
+- `"ativo": false` esconde o estilo sem apagá-lo.
+- As imagens de referência são obras em domínio público ou com licença CC0.
 - Uma pasta inválida é ignorada com um aviso no log; o serviço continua de pé.
 - Os prompts ficam em inglês, que os modelos de imagem seguem melhor.
 
@@ -102,19 +105,20 @@ estilos/
 Todos os provedores implementam a mesma interface, `pintar(foto, estilo): Promise<Buffer>`, e o ativo é escolhido pela variável `PROVEDOR`.
 
 - **`falso`** existe sempre: devolve a própria foto com um filtro, sem custo. Serve para desenvolvimento e testes.
-- O prompt enviado junta o prompt do quadro com uma instrução fixa para preservar rosto, pose e composição da foto.
-- Candidatos em avaliação no teste comparativo: Nano Banana 2.1 (Google), Seedream 5.0, FLUX.2 pro (via fal.ai) e, opcionalmente, GPT Image 2.5. Depois da escolha, ficam no código só o provedor escolhido e o `falso`.
+- **`vertex`** usa o Google Cloud Vertex AI com os modelos de imagem Gemini ("Nano Banana"). A autenticação é só pelo login OAuth da conta Google (Application Default Credentials), sem chave de API.
+- O prompt enviado junta o prompt do estilo com uma instrução fixa para preservar rosto, pose e composição da foto.
+- Um teste comparativo escolhe entre Nano Banana 2.1, 2 e Pro (qualidade, tempo e custo); o modelo escolhido fica em `MODELO_IMAGEM`.
 
 ### Acervo
 
-Cada pintura bem-sucedida é gravada em `dados/acervo/AAAA-MM-DD/<código>/` com `original.jpg`, `pintura.jpg` e `info.json` (quadro, provedor, modelo e data). O código da obra tem o formato `XXX-XXX`, sem caracteres ambíguos. A pasta `dados/` não é servida por HTTP nem versionada.
+Cada pintura bem-sucedida é gravada em `dados/acervo/AAAA-MM-DD/<código>/` com `original.jpg`, `pintura.jpg` e `info.json` (estilo, provedor, modelo e data). O código da obra tem o formato `XXX-XXX`, sem caracteres ambíguos. A pasta `dados/` não é servida por HTTP nem versionada.
 
 ## Estrutura do repositório
 
 ```
 site/        frontend (Vite + TypeScript)
 servidor/    serviço "pintor" (Node.js + Fastify)
-estilos/     catálogo de quadros (dados, não código)
+estilos/     catálogo de estilos (dados, não código)
 deploy/      docker-compose.yml, Caddyfile, Dockerfiles, .env.exemplo
 scripts/     backup do acervo e geração do QR code
 docs/        especificação, plano de implementação e checklists
@@ -122,7 +126,7 @@ docs/        especificação, plano de implementação e checklists
 
 ## Desenvolvimento local
 
-Pré-requisito: Node.js 22 LTS. Com o provedor `falso` não é preciso nenhuma chave de API.
+Pré-requisito: Node.js 22 LTS. Com o provedor `falso` não é preciso nenhuma credencial de IA.
 
 Instale as dependências:
 
@@ -172,7 +176,7 @@ O deploy roda numa VPS Linux com Docker Compose e dois serviços:
 - VPS com Docker e o plugin Compose.
 - Um subdomínio com registro DNS apontando para o IP da VPS.
 - Portas 80 e 443 livres.
-- Chave de API do provedor escolhido.
+- Um projeto no Google Cloud com a API do Vertex AI habilitada e a [Google Cloud CLI](https://cloud.google.com/sdk/docs/install) instalada na VPS.
 
 ### Passo a passo
 
@@ -188,19 +192,27 @@ O deploy roda numa VPS Linux com Docker Compose e dois serviços:
    cp deploy/.env.exemplo deploy/.env
    ```
 
-3. Crie a pasta do acervo com o dono do usuário do contêiner (`node`, uid 1000):
+3. Faça o login OAuth do Google Cloud na VPS. O comando mostra um link para abrir no navegador de outro aparelho:
+
+   ```bash
+   gcloud auth application-default login --no-launch-browser
+   ```
+
+   Aponte `ADC_ARQUIVO` no `.env` para o arquivo gerado (`~/.config/gcloud/application_default_credentials.json`). Ele fica fora do repositório, legível só pelo dono e pelo usuário do contêiner (uid 1000).
+
+4. Crie a pasta do acervo com o dono do usuário do contêiner (`node`, uid 1000):
 
    ```bash
    mkdir -p dados/acervo && sudo chown 1000:1000 dados/acervo
    ```
 
-4. Construa e suba os serviços:
+5. Construa e suba os serviços:
 
    ```bash
    docker compose -f deploy/docker-compose.yml up -d --build
    ```
 
-5. Confira se o serviço respondeu `"ok":true`:
+6. Confira se o serviço respondeu `"ok":true`:
 
    ```bash
    curl https://SEU_SUBDOMINIO/api/saude
@@ -211,8 +223,11 @@ O deploy roda numa VPS Linux com Docker Compose e dois serviços:
 | Variável | Padrão | Uso |
 |---|---|---|
 | `DOMINIO` | — | Subdomínio público; o Caddy emite o certificado para ele |
-| `PROVEDOR` | `falso` | Provedor de IA ativo |
-| Chave do provedor | — | Ex.: `FAL_KEY`, `GEMINI_API_KEY`, `OPENAI_API_KEY`, conforme o provedor escolhido |
+| `PROVEDOR` | `falso` | Provedor de IA ativo: `falso` ou `vertex` |
+| `GOOGLE_CLOUD_PROJECT` | — | Id do projeto no Google Cloud (obrigatório com `vertex`) |
+| `GOOGLE_CLOUD_LOCATION` | `global` | Região do Vertex AI |
+| `MODELO_IMAGEM` | — | Modelo de imagem escolhido no teste comparativo (obrigatório com `vertex`) |
+| `ADC_ARQUIVO` | — | Caminho, na VPS, do arquivo do login OAuth; montado somente leitura no pintor |
 | `EVENTO_ATIVO` | `false` | Interruptor: desligado, `/api/pintar` recusa pedidos |
 | `LIMITE_APARELHO` / `JANELA_APARELHO_MIN` | `5` / `10` | Pinturas por aparelho na janela, em minutos |
 | `LIMITE_IP` / `JANELA_IP_MIN` | `60` / `60` | Pinturas por IP na janela, em minutos |
@@ -266,9 +281,9 @@ Se a VPS já tiver Nginx ou outro serviço nas portas 80/443, troque o Caddy por
 
 O trabalho está dividido em 17 tarefas, detalhadas no [plano de implementação](docs/superpowers/plans/2026-10-27-experiencia-van-gogh-qrcode.md). As decisões de produto e de arquitetura estão na [especificação](docs/superpowers/specs/2026-10-27-experiencia-van-gogh-qrcode-design.md).
 
-- [ ] 1. Servidor base e módulo de estilos com os 4 quadros
+- [ ] 1. Servidor base e módulo de estilos com os 6 estilos
 - [ ] 2. Interface de provedor, provedor `falso` e configuração
-- [ ] 3. Adaptadores candidatos e teste comparativo de provedores
+- [ ] 3. Adaptador Vertex AI (login OAuth) e teste comparativo entre modelos do Google
 - [ ] 4. Acervo: código da obra e gravação
 - [ ] 5. Proteções: limitador, teto diário e fila
 - [ ] 6. Preparo de imagens no servidor
@@ -277,11 +292,11 @@ O trabalho está dividido em 17 tarefas, detalhadas no [plano de implementação
 - [ ] 9. Site base, armazenamento local e cliente da API
 - [ ] 10. Preparo da foto e moldura no site
 - [ ] 11. Direção visual com o tasteskill (`design-taste-frontend`)
-- [ ] 12. Telas de início, termos, quadros e foto, com a base dos testes e2e
+- [ ] 12. Telas de início, termos, escolha do estilo e foto, com a base dos testes e2e
 - [ ] 13. Revelação, resultado, erros e compartilhamento
 - [ ] 14. Olhar e movimento com o tasteskill
 - [ ] 15. Deploy com Docker Compose e Caddy
 - [ ] 16. Operação: backup, QR code e checklist do evento
 - [ ] 17. Publicação na VPS e testes em celulares reais
 
-A tarefa 3 precisa de chaves de API e fotos de teste, então pode correr em paralelo às tarefas 4 a 14, que usam o provedor `falso`.
+A tarefa 3 precisa do login no Google Cloud e de fotos de teste, então pode correr em paralelo às tarefas 4 a 14, que usam o provedor `falso`.
