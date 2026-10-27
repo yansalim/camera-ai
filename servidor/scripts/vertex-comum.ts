@@ -2,6 +2,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import sharp from 'sharp'
+import { prepararFoto } from '../src/imagem/imagem.js'
 
 /** Nano Banana 2.1, Nano Banana 2 e Nano Banana Pro (ids conferidos na documentação do Vertex AI em 2026-10-27). */
 export const MODELOS_PADRAO = ['gemini-nano-banana-2.1', 'gemini-3.1-flash-image', 'gemini-3-pro-image']
@@ -24,7 +25,7 @@ export function lerGoogle(): { projeto: string; local: string } {
   return { projeto, local: process.env.GOOGLE_CLOUD_LOCATION?.trim() || 'global' }
 }
 
-/** Fotos de teste em comparativo/fotos/*.jpg, já com a rotação aplicada e reduzidas a 1600 px. */
+/** Fotos de teste em comparativo/fotos/*.jpg, preparadas como no servidor (rotação, 1600 px, sem metadados). */
 export async function lerFotos(): Promise<Array<{ nome: string; foto: Buffer }>> {
   const dir = path.join(DIR_COMPARATIVO, 'fotos')
   const arquivos = fs.existsSync(dir) ? fs.readdirSync(dir).filter(a => /\.jpe?g$/i.test(a)).sort() : []
@@ -35,7 +36,7 @@ export async function lerFotos(): Promise<Array<{ nome: string; foto: Buffer }>>
   return Promise.all(
     arquivos.map(async a => ({
       nome: path.parse(a).name,
-      foto: await sharp(path.join(dir, a)).rotate().resize(1600, 1600, { fit: 'inside', withoutEnlargement: true }).jpeg({ quality: 85 }).toBuffer(),
+      foto: await prepararFoto(fs.readFileSync(path.join(dir, a))),
     })),
   )
 }
