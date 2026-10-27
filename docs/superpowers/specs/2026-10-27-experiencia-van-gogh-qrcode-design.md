@@ -21,8 +21,8 @@ Objetivo secundário: formar um **acervo** (foto real + pintura) guardado no ser
 
 ## 2. Fora de escopo
 
-- Câmera ao vivo dentro do site (preview, filtro em tempo real, troca de câmera, contagem regressiva).
-- Escolher foto da galeria do celular.
+- Filtro em tempo real, troca de câmera e contagem regressiva na câmera do site.
+- Escolher foto da galeria do celular ou um arquivo do computador: a foto vem **sempre** da câmera.
 - Painel web do acervo (o acesso é por pastas no servidor).
 - Captação de contatos (e-mail, WhatsApp, Instagram).
 - Telão no estande, outros idiomas além do português.
@@ -47,7 +47,7 @@ Interface toda em português, pensada para celular.
    | Van Gogh | A Noite Estrelada | Pinceladas grossas e céu em espirais |
    | Mona Lisa | Leonardo da Vinci | Retrato a óleo com sfumato e paisagem ao fundo |
 
-3. **Foto** — botão **"Tirar foto"** que abre a **câmera nativa** do celular (`<input type="file" accept="image/*" capture="user">`, frontal sugerida). Não há câmera ao vivo no site. Limitação conhecida: alguns navegadores embutidos (Instagram, WhatsApp) podem ignorar `capture` e oferecer a galeria; isso é aceito.
+3. **Foto** — botão **"Tirar foto"** que pede permissão e abre a **câmera frontal dentro do site** (`getUserMedia`), com a imagem ao vivo espelhada como selfie e o botão **"Fotografar"**. Não existe seletor de arquivo: a foto vem sempre da câmera, nunca da galeria (decisão do usuário em 2026-10-27; o `<input capture>` abria arquivos no computador e a galeria em alguns navegadores embutidos). Sem permissão, sem câmera ou num navegador que não libera a câmera (alguns embutidos no Instagram e no WhatsApp), aparece um aviso dizendo o que fazer (permitir a câmera ou abrir o link no Chrome ou no Safari), nunca a galeria. A câmera exige HTTPS, que o Caddy já fornece.
 4. **Revelação** (5 a 20 s) — a foto aparece e vai sendo "pintada" com animação de pinceladas e frases alternadas, próprias do estilo escolhido (em Van Gogh, "Misturando os amarelos…"; na Arte Grega, "Esculpindo os cachos…"). Quando a pintura chega, ela é revelada com pinceladas varrendo a tela.
 5. **Resultado**
    - Chave **Com moldura / Só a pintura**. A versão com moldura é composta no celular: moldura dourada de museu + texto de assinatura configurável (ex.: @perfil ou #hashtag).

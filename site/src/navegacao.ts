@@ -18,6 +18,12 @@ export const estado: Estado = {}
 
 type Montar = (raiz: HTMLElement, dados: DadosDaTela) => void | Promise<void>
 const telas = new Map<Tela, Montar>()
+let aoSair: Array<() => void> = []
+
+/** Registra uma limpeza para quando o visitante sair da tela atual (por exemplo, desligar a câmera). */
+export function aoSairDaTela(limpar: () => void): void {
+  aoSair.push(limpar)
+}
 
 export function registrarTela(tela: Tela, montar: Montar): void {
   telas.set(tela, montar)
@@ -31,6 +37,9 @@ export function irPara(tela: Tela, dados: DadosDaTela = {}): void {
   const raiz = document.querySelector<HTMLElement>('#app')
   const montar = telas.get(tela)
   if (!raiz || !montar) throw new Error(`Tela não registrada: ${tela}`)
+  const limpezas = aoSair
+  aoSair = []
+  limpezas.forEach(limpar => limpar())
   document.body.dataset.tela = tela
   raiz.replaceChildren()
   window.scrollTo(0, 0)
