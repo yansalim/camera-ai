@@ -35,3 +35,19 @@ export class ErroApi extends Error {
 }
 
 export const corpoDoErro = (codigo: CodigoErro) => ({ erro: codigo, mensagem: ERROS[codigo].mensagem })
+
+/** Erros do @fastify/multipart que significam "a foto não veio como deveria". */
+const ERROS_DE_UPLOAD = new Set([
+  'FST_REQ_FILE_TOO_LARGE',
+  'FST_FILES_LIMIT',
+  'FST_PARTS_LIMIT',
+  'FST_FIELDS_LIMIT',
+  'FST_INVALID_MULTIPART_CONTENT_TYPE',
+])
+
+/** Código da API para um erro conhecido; undefined para erro inesperado. */
+export function codigoDoErro(e: unknown): CodigoErro | undefined {
+  if (e instanceof ErroApi) return e.codigo
+  if (ERROS_DE_UPLOAD.has((e as { code?: string })?.code ?? '')) return 'FOTO_INVALIDA'
+  return undefined
+}

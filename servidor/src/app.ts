@@ -2,13 +2,14 @@ import multipart from '@fastify/multipart'
 import Fastify, { type FastifyInstance, LogController } from 'fastify'
 import type { Acervo } from './acervo/acervo.js'
 import type { Config } from './config.js'
-import { corpoDoErro, ERROS, ErroApi } from './erros.js'
+import { codigoDoErro, corpoDoErro, ERROS } from './erros.js'
 import type { Catalogo } from './estilos/catalogo.js'
 import type { Fila } from './protecao/fila.js'
 import type { Limitador } from './protecao/limitador.js'
 import type { TetoDiario } from './protecao/teto-diario.js'
 import type { Provedor } from './provedores/tipos.js'
 import { rotasDeEstilos } from './rotas/estilos.js'
+import { rotaDePintura } from './rotas/pintar.js'
 import { rotaDeSaude } from './rotas/saude.js'
 
 export interface Dependencias {
@@ -34,15 +35,14 @@ export function construirApp(deps: Dependencias, opcoes: { logger?: boolean } = 
   app.register(multipart, { limits: { fileSize: 5 * 1024 * 1024, files: 1 } })
 
   app.setErrorHandler((erro, req, reply) => {
-    if (erro instanceof ErroApi) return reply.code(ERROS[erro.codigo].status).send(corpoDoErro(erro.codigo))
-    if ((erro as { code?: string }).code === 'FST_REQ_FILE_TOO_LARGE') {
-      return reply.code(ERROS.FOTO_INVALIDA.status).send(corpoDoErro('FOTO_INVALIDA'))
-    }
+    const codigo = codigoDoErro(erro)
+    if (codigo) return reply.code(ERROS[codigo].status).send(corpoDoErro(codigo))
     req.log.error({ err: erro }, 'erro inesperado')
     return reply.code(500).send(corpoDoErro('IA_INDISPONIVEL'))
   })
 
   rotasDeEstilos(app, deps)
   rotaDeSaude(app, deps)
+  rotaDePintura(app, deps)
   return app
 }
