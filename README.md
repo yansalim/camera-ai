@@ -264,7 +264,7 @@ Se a VPS já tiver Nginx ou outro serviço nas portas 80/443, troque o Caddy por
 
 ## Planejamento
 
-O trabalho está dividido em 15 tarefas, detalhadas no [plano de implementação](docs/superpowers/plans/2026-10-27-experiencia-van-gogh-qrcode.md). As decisões de produto e de arquitetura estão na [especificação](docs/superpowers/specs/2026-10-27-experiencia-van-gogh-qrcode-design.md).
+O trabalho está dividido em 17 tarefas, detalhadas no [plano de implementação](docs/superpowers/plans/2026-10-27-experiencia-van-gogh-qrcode.md). As decisões de produto e de arquitetura estão na [especificação](docs/superpowers/specs/2026-10-27-experiencia-van-gogh-qrcode-design.md).
 
 - [ ] 1. Servidor base e módulo de estilos com os 4 quadros
 - [ ] 2. Interface de provedor, provedor `falso` e configuração
@@ -276,10 +276,12 @@ O trabalho está dividido em 15 tarefas, detalhadas no [plano de implementação
 - [ ] 8. Rota `POST /api/pintar`
 - [ ] 9. Site base, armazenamento local e cliente da API
 - [ ] 10. Preparo da foto e moldura no site
-- [ ] 11. Telas de início, quadros e foto, com a base dos testes e2e
-- [ ] 12. Revelação, resultado, erros e compartilhamento
-- [ ] 13. Deploy com Docker Compose e Caddy
-- [ ] 14. Operação: backup, QR code e checklist do evento
-- [ ] 15. Publicação na VPS e testes em celulares reais
+- [ ] 11. Direção visual com o tasteskill (`design-taste-frontend`)
+- [ ] 12. Telas de início, termos, quadros e foto, com a base dos testes e2e
+- [ ] 13. Revelação, resultado, erros e compartilhamento
+- [ ] 14. Olhar e movimento com o tasteskill
+- [ ] 15. Deploy com Docker Compose e Caddy
+- [ ] 16. Operação: backup, QR code e checklist do evento
+- [ ] 17. Publicação na VPS e testes em celulares reais
 
-A tarefa 3 precisa de chaves de API e fotos de teste, então pode correr em paralelo às tarefas 4 a 12, que usam o provedor `falso`.
+A tarefa 3 precisa de chaves de API e fotos de teste, então pode correr em paralelo às tarefas 4 a 14, que usam o provedor `falso`.
