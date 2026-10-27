@@ -6,9 +6,10 @@
 
 **Architecture:** Site estático (Vite + TypeScript, sem framework) servido pelo Caddy, que também faz proxy de `/api/*` para o serviço "pintor" (Node.js + Fastify). O pintor lê o catálogo de estilos de `estilos/`, aplica as proteções (interruptor de evento, limites, teto diário, fila), chama a IA por um adaptador de provedor e grava o acervo em `dados/acervo/`. Tudo sobe com Docker Compose.
 
-**Tech Stack:** Node.js 22 LTS, TypeScript (strict, ESM, `moduleResolution: NodeNext`), Fastify 5 + `@fastify/multipart`, `sharp`, Vitest (servidor em Node; site em modo navegador com Playwright/Chromium), Playwright (e2e), Vite, Caddy 2, Docker Compose.
+**Tech Stack:** Node.js 22 LTS, TypeScript (strict, ESM, `moduleResolution: NodeNext`), Fastify 5 + `@fastify/multipart`, `sharp`, Vitest (servidor em Node; site em modo navegador com Playwright/Chromium), Playwright (e2e), Vite, Caddy 2, Docker Compose. Direção visual: skill `design-taste-frontend` (tasteskill v2; precisa de Node 22+ e Chrome, Edge ou Chromium instalado).
 
 **Spec:** `docs/superpowers/specs/2026-10-27-experiencia-van-gogh-qrcode-design.md`
+**Direção visual:** `docs/direcao-visual.md` (criada na Task 11)
 
 ## Global Constraints
 
@@ -23,6 +24,8 @@
 - Código da obra: `XXX-XXX` com alfabeto `23456789ABCDEFGHJKMNPQRSTUVWXYZ` (sem 0, O, 1, I, L).
 - Versão atual dos termos: `v1`.
 - Campos do multipart: `foto`, `estiloId`, `termosVersao`, `aceiteEm`. Cabeçalho de entrada `X-Aparelho`; de saída `X-Codigo-Obra`.
+- Visual: regras da casa do tasteskill em todas as telas — sem rótulo pequeno acima de título, sem selo em pílula, sem monoespaçada (inclusive no código da obra), sem numeração 01/02/03, sem filetes finos, sem gradiente, sem sombra em repouso, sem vidro, sem emoji, sem fileira de cartões idênticos, no máximo duas famílias tipográficas. Medidas pelo `inspect.mjs` nas Tasks 12–14.
+- Os `data-testid` e os textos fixos das Tasks 12–13 não mudam por causa do visual (os testes e2e dependem deles).
 
 ## Decisões tomadas neste plano (complementam a spec)
 
@@ -30,20 +33,24 @@
 2. **Novo código de erro `ACEITE_AUSENTE`** (400, "Volte ao início e toque em \"Quero criar minha foto\"."), para pedidos sem `termosVersao`/`aceiteEm` válidos — o acervo exige registro de aceite.
 3. **Pedido sem `X-Aparelho`** usa o IP como chave do limite por aparelho.
 4. **Falha ao gravar no acervo** (ex.: disco cheio) não estraga a experiência: o visitante recebe a pintura sem `X-Codigo-Obra` e o erro vai para o log.
-5. **Moldura desenhada por código** (gradientes dourados no canvas) em vez de um PNG — não depende de arte externa; trocar o visual é editar `moldura.ts`.
+5. **Moldura desenhada por código** (gradientes dourados no canvas) em vez de um PNG — não depende de arte externa; trocar o visual é editar `moldura.ts`. A moldura é conteúdo da imagem, não interface: as regras da casa do tasteskill valem para as telas, não para os pixels dela. Mesmo assim ela é revista no olhar da Task 14 e precisa parecer uma moldura real de museu, não um enfeite.
 6. **Revelação dura no mínimo 4 s**, mesmo se a IA responder antes (suspense).
 7. **"Com moldura" é a versão exibida primeiro** no resultado.
 8. **Prompts dos estilos em inglês** (melhor aderência dos modelos de imagem).
 9. **"Salvar" no iPhone abre a imagem em tela cheia** com a dica "Toque e segure a imagem para salvar" (o download do Safari vai para Arquivos, não para Fotos).
 10. **Script do comparativo em `servidor/scripts/`** (reusa catálogo e adaptadores do servidor).
+11. **Direção visual pelo tasteskill (`design-taste-frontend`)**, para o site não ter cara de página gerada por IA. O site é tratado como *página* no sentido do skill (pública, lida no celular), não como tela de app; as telas do fluxo fazem o papel das seções, e a largura que manda é 390 px (768 e 1440 precisam funcionar para quem abre num computador). A direção é sorteada e escolhida na Task 11, conferida por `lint.mjs` e `inspect.mjs` nas Tasks 12–13 e fechada com olhar e movimento na Task 14. A "coisa viva" que o skill pede é a própria experiência (foto → pintura); não inventar outra.
+12. **Vitrine de telas** (`site/vitrine.html?tela=…`): monta cada tela com estado fixo, para o inspetor fotografar todas sem passar pelo fluxo. Só entra no build com `--mode vitrine`; nunca em `site/dist`.
+13. **Fontes e imagens servidas pelo próprio site**, sem CDN em tempo de execução (a internet do evento é instável).
 
 ## Review Focus
 
 1. **Muitos visitantes atrás do mesmo IP (Wi-Fi do evento) e o pintor atrás do Caddy** — sem `trustProxy`, todos os pedidos parecem vir do IP do Caddy e o limite de 60/h trava o evento inteiro. Teste na Task 8 (`X-Forwarded-For` distintos contam separado).
-2. **Toque duplo em "Tentar de novo" / envio repetido** — deve sair um único pedido (gasto e limites dobrados). Teste e2e na Task 12.
+2. **Toque duplo em "Tentar de novo" / envio repetido** — deve sair um único pedido (gasto e limites dobrados). Teste e2e na Task 13.
 3. **IA responde depois do tempo esgotado** — a resposta tardia não pode ser gravada no acervo nem contar no teto. Teste na Task 8.
 4. **Falha ao gravar o acervo** — o visitante ainda recebe a pintura. Teste na Task 8.
 5. **`localStorage` indisponível** (aba anônima, navegador embutido) — aceite e identificador do aparelho caem para memória e o fluxo continua. Teste na Task 9.
+6. **Cara de IA** — `inspect.mjs` com 0 FAIL em todos os estados da vitrine a 390, 768 e 1440 px, a frase da ideia passando no teste do concorrente e a crítica escrita em `docs/direcao-visual.md`. Tasks 11 e 14.
 
 ---
 
@@ -79,9 +86,12 @@ servidor/
   test/…                             Vitest
 site/
   package.json  tsconfig.json  vite.config.ts  vitest.config.ts  playwright.config.ts
-  index.html  termos.html
+  index.html  termos.html  vitrine.html   (vitrine só no build --mode vitrine)
+  .taste-skill/direction.json        direção sorteada pelo tasteskill (Task 11)
+  public/fontes/  public/imagens/    fontes WOFF2 e imagens achadas (com créditos)
   src/
     main.ts                          navegação entre telas + estado
+    vitrine.ts                       monta uma tela com estado fixo (?tela=…)
     config.ts                        escola, e-mail, assinatura, versão dos termos
     armazenamento.ts                 localStorage com fallback em memória
     aceite.ts  api.ts  foto.ts  moldura.ts  compartilhar.ts
@@ -94,7 +104,7 @@ deploy/
 scripts/
   package.json  backup-acervo.sh  gerar-qrcode.mjs
 docs/
-  checklist-evento.md  validacao-campo.md
+  checklist-evento.md  validacao-campo.md  direcao-visual.md
 ```
 
 ---
@@ -219,7 +229,7 @@ it('criarProvedor recusa provedor desconhecido', () => { expect(() => criarProve
 
 ### Task 3: Adaptadores candidatos + teste comparativo (⏸ decisão do usuário)
 
-Pode rodar em paralelo às Tasks 4–12, que usam o provedor `falso`. Precisa do usuário: chaves de API dos candidatos e ~10 fotos reais de pessoas que autorizaram o teste.
+Pode rodar em paralelo às Tasks 4–14, que usam o provedor `falso`. Precisa do usuário: chaves de API dos candidatos e ~10 fotos reais de pessoas que autorizaram o teste.
 
 **Files:**
 - Create: `servidor/src/provedores/{http.ts,gemini.ts,fal-kontext.ts,openai.ts}`, `servidor/scripts/comparativo.ts`
@@ -556,7 +566,7 @@ it('interpretarErro com corpo estranho cai em IA_INDISPONIVEL', () => { expect(i
   export function prepararFoto(arquivo: Blob): Promise<Blob>              // JPEG 0,85; falha → ErroPintura('FOTO_INVALIDA', 'Não consegui abrir essa foto. Tente tirar outra.')
   export function comporMoldura(pintura: Blob, assinatura: string): Promise<Blob>   // JPEG 0,9
   ```
-  Geometria da moldura (sobre a pintura de largura `w`, altura `h`, `m = min(w, h)`): borda `b = round(0.08·m)` nos 4 lados; com assinatura, faixa extra inferior `p = round(0.12·m)` com a assinatura centralizada numa plaqueta. Saída: `(w + 2b) × (h + 2b + p)`; sem assinatura `p = 0`. Visual de moldura dourada de museu (gradientes, filete interno) a critério do implementador.
+  Geometria da moldura (sobre a pintura de largura `w`, altura `h`, `m = min(w, h)`): borda `b = round(0.08·m)` nos 4 lados; com assinatura, faixa extra inferior `p = round(0.12·m)` com a assinatura centralizada numa plaqueta. Saída: `(w + 2b) × (h + 2b + p)`; sem assinatura `p = 0`. Visual de moldura dourada de museu (gradientes, filete interno) desenhado no canvas; esta é uma primeira versão, acertada na Task 14 com as cores e a fonte da direção da Task 11 (Decisão 5).
 
 - [ ] **Step 1: Gerador de fixtures** (`node site/test/fixtures/gerar.mjs`, usa `sharp` como devDependency do site): `paisagem-4000x3000.jpg`, `retrato-orientacao-6.jpg` (400×300 armazenado, `orientation: 6`), `pintura-800x600.png` (cor sólida `#3366cc`), `selfie.jpg` (1200×1600 colorida, para o e2e).
 
@@ -581,16 +591,59 @@ it('moldura sem assinatura não tem plaqueta', async () => { const i = await cre
 
 ---
 
-### Task 11: Telas de início, termos, quadros e foto (+ infraestrutura e2e)
+### Task 11: Direção visual com o tasteskill (⏸ ok do usuário na direção)
+
+Decide a direção de arte antes de qualquer tela (Decisão 11). **REQUIRED SUB-SKILL:** carregar o skill `design-taste-frontend` e seguir os passos 1 a 5 do roteiro dele ("The run"); esta task só fixa o que é específico do projeto. Nos comandos, `<skill>` = `~/.claude/skills/design-taste-frontend`. Rodar tudo a partir de `site/`, para que os arquivos de trabalho fiquem em `site/.taste-skill/` (é lá que `lint.mjs` e `inspect.mjs` procuram a direção).
+
+**Files:**
+- Create: `docs/direcao-visual.md`, `site/.taste-skill/direction.json` (gerado pelo `draw.mjs`, versionado), `site/src/estilos.css` (tokens), `site/public/fontes/*.woff2`
+- Create (se a direção pedir): `site/public/imagens/` (imagens achadas + `credits.json`)
+- Modify: `.gitignore` (`site/.taste-skill/inspect/`, `site/.taste-skill/scenes/`, `site/dist-vitrine/`)
+
+**Interfaces:**
+- Produces:
+  - `site/src/estilos.css`: os papéis de cor e de tipo da folha como propriedades CSS em `:root`, mais as `@font-face`. As Tasks 12–14 só usam esses tokens, nunca valores soltos.
+  - `docs/direcao-visual.md` com as seções: Inventário, Argumento, Direção (nome, seed, ajustes e motivos), Ideia, Roteiro de palavras, Créditos das imagens, Crítica (Task 14), Relatório (Task 14).
+
+**O que já está decidido para o passo 1 do skill:**
+- Imagens reais disponíveis: os 4 quadros (domínio público, Wikimedia Commons, baixados na Task 1). Não são fotos do projeto, então ficam fora de `--have`. Não há fotos próprias da escola nem do estande.
+- Textos fixos: os das Tasks 12–13 e as mensagens da seção 7 da spec ficam exatamente como estão. O roteiro de palavras do passo 5 cobre só o resto: a frase de apoio de cada tela, a legenda de cada quadro (título, ano, museu), os textos de `/termos` além dos itens obrigatórios e a linha de créditos.
+- Pontos de partida para o inventário (o skill pede de 8 a 12 itens; conferir, completar e escolher, não só copiar): os 4 quadros e onde estão hoje (MoMA, Nova York; National Gallery, Londres; Kröller-Müller, Otterlo; Musée d'Orsay, Paris); Arles e Saint-Rémy, 1888–1889; o empasto visto de perto; a paleta dele (amarelo de cromo, azul da Prússia, cobalto); as cartas a Theo, com esboços; a etiqueta de parede do museu (título, ano, técnica, número de inventário), parente do código da obra; a moldura dourada; o estande da escola e o cartaz com o QR code.
+
+- [ ] **Step 1: Inventário e argumento** (passos 1 e 2 do skill) em `docs/direcao-visual.md`: o inventário, depois uma linha de afirmação e prova por tela (início, quadros, foto, revelação, resultado, erro) e por `/termos`.
+
+- [ ] **Step 2: Sortear três direções.** Run (em `site/`): `node <skill>/scripts/draw.mjs --sector culture --brief "school booth where visitors take a selfie on their phone and see it repainted as a Van Gogh painting" --sections <papéis na ordem do argumento; ponto de partida: gallery,showcase,footer> --options 3`. Escolher a que melhor carrega um item do inventário (não a mais familiar) e anotar o motivo. Depois, o mesmo comando sem `--options` e com `--direction <id>` — Expected: grava `.taste-skill/direction.json` e imprime a folha de direção.
+
+- [ ] **Step 3: Ajustes da folha**, cada um anotado com o motivo:
+  - Paleta: os quadros têm cores próprias inconfundíveis; vale manter as proporções sorteadas e tirar as cores dos quadros (passo 3 do skill). Nenhuma cor pode cair na paleta proibida (fundo creme com terracota, violeta, índigo); o azul-noite da Noite Estrelada pode cair em índigo.
+  - Cenas de rolagem: as telas do fluxo cabem numa tela e não rolam. Se a folha trouxer cenas, usar no máximo em `/termos` ou dispensar, anotando por quê.
+  - Fonte: uma família, duas no máximo, em WOFF2 em `site/public/fontes/` (Decisão 13), com `font-display: swap`.
+  - Qualquer `--redraw` só com motivo que caiba numa frase (o skill lista os válidos).
+
+- [ ] **Step 4: Ideia** (passo 4). Escrever "Nesta experiência, **[algo do inventário]** vira **[o recurso que a direção pede]**." e aplicar o teste do concorrente: se a frase servir para qualquer app de filtro "estilo Van Gogh", ela é da categoria, não deste projeto; refazer.
+
+- [ ] **Step 5: Roteiro de palavras** (passo 5, `references/copy.md`): o texto de todas as telas e de `/termos`, com os textos fixos copiados sem mudança e os novos marcados. Todo título cabe em 2 linhas a 390 px.
+
+- [ ] **Step 6: Imagens achadas (só se a direção pedir).** Para imagens além dos quadros (o empasto de perto, uma carta a Theo, uma moldura de museu como referência), buscar com `node <skill>/scripts/assets.mjs "<busca>"`. **Antes de cada `--get`, pedir confirmação ao usuário**, informando arquivo, origem e tamanho; baixar com `--to public/imagens`. Otimizar (lado maior ≤ 1600 px, ≤ 250 KB cada) e copiar os créditos (`assets.mjs --credits --to public/imagens`) para `docs/direcao-visual.md`. Se a composição mostrar os quadros com mais de ~240 px de largura, regenerar as miniaturas com lado maior 1080 px (ajustar `preparar-estilo.ts` da Task 1).
+
+- [ ] **Step 7: Tokens.** Criar `site/src/estilos.css` com os papéis da folha (o `<skill>/assets/base.css` pode servir de base) e as `@font-face`.
+
+- [ ] **Step 8: ⏸ Mostrar ao usuário** a direção escolhida (nome e seed), as outras duas, a frase da ideia e a paleta. Se o usuário pedir outra, `--redraw direction` (ou o slot que ele apontar) e repetir os Steps 3–7.
+
+- [ ] **Step 9: Commit.** `git add .gitignore docs/direcao-visual.md site/.taste-skill/direction.json site/src/estilos.css site/public && git commit -m "feat(site): direção visual com o tasteskill"` (incluir `estilos/` e `servidor/scripts/preparar-estilo.ts` se as miniaturas tiverem sido regeneradas).
+
+---
+
+### Task 12: Telas de início, termos, quadros e foto (+ infraestrutura e2e)
 
 **Files:**
 - Create: `site/playwright.config.ts`, `site/e2e/inicio.spec.ts`
-- Create: `site/src/telas/{inicio.ts,quadros.ts,foto.ts}`, `site/src/estilos.css`
-- Modify: `site/src/main.ts`, `site/termos.html`
+- Create: `site/src/telas/{inicio.ts,quadros.ts,foto.ts}`, `site/vitrine.html`, `site/src/vitrine.ts`
+- Modify: `site/src/main.ts`, `site/termos.html`, `site/src/estilos.css`, `site/vite.config.ts`, `site/package.json` (script `vitrine`)
 
 **Interfaces:**
 - Consumes: `CONFIG`, `registrarAceite`, `lerAceite`, `buscarEstilos`, `buscarSaude`, `EstiloPublico`.
-- Produces (usados pela Task 12): estado compartilhado em `main.ts`:
+- Produces (usados pela Task 13): estado compartilhado em `main.ts`:
   ```ts
   export interface Estado { estilo?: EstiloPublico; foto?: Blob; resultado?: ResultadoPintura; comMoldura?: Blob }
   export function irPara(tela: 'inicio' | 'quadros' | 'foto' | 'revelacao' | 'resultado' | 'erro', dados?: { erro?: ErroPintura }): void
@@ -626,18 +679,23 @@ test('evento desligado mostra o aviso e esconde o botão', async ({ page }) => {
 
 - [ ] **Step 3: Rodar e ver falhar.** Run: `npm --prefix site run e2e -- inicio` — Expected: FAIL.
 
-- [ ] **Step 4: Implementar as telas e `termos.html`.** Termos (versão `v1`, preenchidos com `CONFIG.escola` e `CONFIG.emailContato`) cobrindo exatamente os itens da spec 6.2: quem guarda; o que é guardado (foto real e pintura); finalidade (eventos e divulgação da escola); processamento por provedor de IA externo; prazo de até 5 anos; declaração de maioridade; pedido de exclusão por e-mail com o código da obra. Botão "Tirar foto" aciona o `<input type="file" accept="image/*" capture="user" hidden>`. Visual mobile-first; se houver skill de design de frontend disponível, usá-la para a direção visual.
+- [ ] **Step 4: Implementar as telas e `termos.html`.** Termos (versão `v1`, preenchidos com `CONFIG.escola` e `CONFIG.emailContato`) cobrindo exatamente os itens da spec 6.2: quem guarda; o que é guardado (foto real e pintura); finalidade (eventos e divulgação da escola); processamento por provedor de IA externo; prazo de até 5 anos; declaração de maioridade; pedido de exclusão por e-mail com o código da obra. Botão "Tirar foto" aciona o `<input type="file" accept="image/*" capture="user" hidden>`. Visual: carregar o skill `design-taste-frontend` e construir pelo passo 6 dele ("Build it, still"), seguindo a folha da Task 11 (reler com `node <skill>/scripts/draw.mjs --show`, em `site/`), os tokens de `estilos.css` e o roteiro de palavras de `docs/direcao-visual.md`. Celular primeiro (390 px). `cartao-estilo` é o nome do teste, não da forma: a escolha do quadro segue o blueprint sorteado e mostra os quadros grandes, nunca uma fileira de cartões iguais com ícone. `/termos` ganha a seção "Créditos das imagens" (cada quadro com título, ano, museu, Wikimedia Commons, domínio público, e cada imagem achada na Task 11); o início tem uma linha curta de créditos no pé, com link para ela.
 
-- [ ] **Step 5: Rodar e ver passar.** Run: `npm --prefix site run e2e -- inicio` — Expected: PASS nos dois projetos.
+- [ ] **Step 5: Vitrine (Decisão 12).** `site/vitrine.html` + `site/src/vitrine.ts`: lê `?tela=` e monta a tela com estado fixo, sem passar pelo fluxo. Estados desta task: `inicio`, `inicio&evento=inativo`, `quadros`, `foto` (a Task 13 acrescenta os outros). Os estilos vêm da API (servidor em modo falso); o resto é fixo. `vite.config.ts` só inclui `vitrine.html` em `build.rollupOptions.input` quando `mode === 'vitrine'`; script `vitrine`: `vite build --mode vitrine --outDir dist-vitrine && vite preview --outDir dist-vitrine --port 4173 --strictPort` (o `preview` herda o proxy de `/api`). Run: `npm --prefix site run build` — Expected: `site/dist/vitrine.html` não existe.
 
-- [ ] **Step 6: Commit.** `git commit -m "feat(site): telas de início, termos, quadros e foto"`
+- [ ] **Step 6: Rodar e ver passar.** Run: `npm --prefix site run e2e -- inicio` — Expected: PASS nos dois projetos.
+
+- [ ] **Step 7: Portão do tasteskill** (passo 7 do skill). Com o servidor (`PROVEDOR=falso EVENTO_ATIVO=true npm --prefix servidor run dev`) e a vitrine (`npm --prefix site run vitrine`) no ar, em `site/`: Run: `node <skill>/scripts/lint.mjs src index.html termos.html` e, para cada estado desta task, `node <skill>/scripts/inspect.mjs "http://localhost:4173/vitrine.html?tela=<estado>" --out .taste-skill/inspect/<nome-do-estado>`, mais `http://localhost:4173/termos.html` — Expected: 0 FAIL, exceto `still-page` (o movimento fica para a Task 14). Abrir as capturas de 390 px e corrigir o que estiver visivelmente errado. Rodar o Step 6 de novo se mexer em tela.
+
+- [ ] **Step 8: Commit.** `git commit -m "feat(site): telas de início, termos, quadros e foto"`
 
 ---
 
-### Task 12: Revelação, resultado, erros e compartilhamento
+### Task 13: Revelação, resultado, erros e compartilhamento
 
 **Files:**
-- Create: `site/src/telas/{revelacao.ts,resultado.ts,erro.ts}`, `site/src/compartilhar.ts`, `site/e2e/pintura.spec.ts`
+- Create: `site/src/telas/{revelacao.ts,resultado.ts,erro.ts}`, `site/src/compartilhar.ts`, `site/e2e/pintura.spec.ts`, `site/test/fixtures/pintura-exemplo.jpg`
+- Modify: `site/src/vitrine.ts`, `site/src/estilos.css`
 - Test: `site/test/compartilhar.test.ts`
 
 **Interfaces:**
@@ -692,15 +750,43 @@ test('evento desligado durante o uso', async ({ page }) => { /* 503 EVENTO_INATI
 
 - [ ] **Step 2: Rodar e ver falhar.** Run: `npm --prefix site test` e `npm --prefix site run e2e -- pintura` — Expected: FAIL.
 
-- [ ] **Step 3: Implementar** (ajudantes de e2e `aceitarEEscolher` e `lerInfoDoAcervo` em `site/e2e/ajudantes.ts`) as telas, `compartilhar.ts` e a animação de pinceladas da revelação (CSS/canvas sobre a foto; revelação final com pinceladas varrendo a tela).
+- [ ] **Step 3: Implementar** (ajudantes de e2e `aceitarEEscolher` e `lerInfoDoAcervo` em `site/e2e/ajudantes.ts`) as telas, `compartilhar.ts` e a animação de pinceladas da revelação (CSS/canvas sobre a foto; revelação final com pinceladas varrendo a tela). Visual como na Task 12 (skill `design-taste-frontend`, folha da Task 11, tokens, roteiro de palavras): cada tela com composição própria, sem repetir a da vizinha; o código da obra na fonte do texto com algarismos tabulares, nunca monoespaçada; a pintura é a coisa grande da tela de resultado; a tela de erro mantém a mesma direção (nada de alerta genérico com ícone).
 
-- [ ] **Step 4: Rodar e ver passar.** Run: `npm --prefix site test` e `npm --prefix site run e2e` — Expected: PASS em todos os testes, nos dois projetos.
+- [ ] **Step 4: Vitrine.** Acrescentar os estados `revelacao` (animação em laço, sem chamar a API), `resultado`, `resultado&versao=so-pintura`, `resultado&dica=ios`, `erro&codigo=LIMITE_APARELHO`, `erro&codigo=RECUSADA` e `erro&codigo=EVENTO_INATIVO`. Pintura de exemplo: `estilos/autorretrato/referencia.jpg` (o próprio autorretrato de 1889, sem pessoa real) copiada para `site/test/fixtures/pintura-exemplo.jpg`; foto de exemplo: `selfie.jpg`; código `K7M-3PX`.
 
-- [ ] **Step 5: Commit.** `git commit -m "feat(site): revelação, resultado, erros e compartilhamento"`
+- [ ] **Step 5: Rodar e ver passar.** Run: `npm --prefix site test` e `npm --prefix site run e2e` — Expected: PASS em todos os testes, nos dois projetos.
+
+- [ ] **Step 6: Portão do tasteskill.** Como no Step 7 da Task 12, para os estados novos — Expected: 0 FAIL, exceto `still-page`. Rodar o Step 5 de novo se mexer em tela.
+
+- [ ] **Step 7: Commit.** `git commit -m "feat(site): revelação, resultado, erros e compartilhamento"`
 
 ---
 
-### Task 13: Deploy (Docker Compose + Caddy)
+### Task 14: Olhar e movimento com o tasteskill
+
+Passos 7 a 10 do roteiro do skill sobre o site inteiro, já com todas as telas. **REQUIRED SUB-SKILL:** `design-taste-frontend` (reler a folha com `node <skill>/scripts/draw.mjs --show` antes de começar). Tudo em `site/`.
+
+**Files:**
+- Modify: `site/src/estilos.css`, `site/src/telas/*.ts`, `site/src/moldura.ts`, `site/termos.html` (ajustes das rodadas)
+- Modify: `docs/direcao-visual.md` (crítica e relatório)
+
+- [ ] **Step 1: Subir no build de produção.** Em segundo plano: `PROVEDOR=falso EVENTO_ATIVO=true npm --prefix servidor run dev` e `npm --prefix site run vitrine` (o inspetor avisa quando olha um servidor de desenvolvimento; o portão vale no build).
+
+- [ ] **Step 2: Portão.** Run: `node <skill>/scripts/lint.mjs src index.html termos.html` e `inspect.mjs` em todos os estados da vitrine (Tasks 12 e 13) e em `termos.html`, cada um com seu `--out .taste-skill/inspect/<nome-do-estado>`. Corrigir todo FAIL. Um WARN só fica se der para defendê-lo numa frase, anotada em `docs/direcao-visual.md`.
+
+- [ ] **Step 3: Olhar** (passo 8, `references/critique.md`). Abrir todas as capturas que o inspetor listar (390, 768 e 1440 px, de todos os estados), escrever a crítica no formato do §4 em `docs/direcao-visual.md`, corrigir os 3 piores problemas, rodar o portão de novo e olhar de novo. No máximo 3 rodadas. Olhar também a imagem com moldura do `resultado`, que é o que o visitante compartilha: `moldura.ts` usa as cores e a fonte da direção (esperar `document.fonts.load` antes de escrever a assinatura) e os testes da Task 10 continuam passando.
+
+- [ ] **Step 4: Movimento** (passo 9, `references/motion.md`): a assinatura (a revelação com pinceladas, salvo se a folha disser outra), a entrada escalonada das partes de cada tela, retorno em todo controle (toque, hover, foco) e uma imagem em movimento (ex.: deriva lenta sobre um quadro no início). Só `transform` e `opacity`. Com `prefers-reduced-motion`, o conteúdo fica e o deslocamento some; a revelação mantém a duração mínima de 4 s (Decisão 6) e as frases. Estados de uma mensagem só (`foto`, `erro&…`) que não cheguem aos 8 elementos em movimento: `--allow still-page` só neles, com a justificativa anotada. Nenhuma outra regra ganha exceção.
+
+- [ ] **Step 5: Portão final e regressão.** Repetir o Step 2 na versão final — Expected: 0 FAIL em todos os estados, a 390, 768 e 1440 px. Abrir de novo todas as capturas. Run: `npm --prefix site test` e `npm --prefix site run e2e` — Expected: PASS (testids e textos fixos não mudaram).
+
+- [ ] **Step 6: Relatório** (passo 10) em `docs/direcao-visual.md`: direção e seed, ajustes da folha com os motivos, frase da ideia, notas da última crítica e o que ainda fica aquém, créditos de cada imagem achada e onde aparecem, desenhos que fazem o papel de foto, textos de exemplo a trocar. Mostrar ao usuário as capturas de 390 px de cada estado.
+
+- [ ] **Step 7: Commit.** `git commit -m "feat(site): acabamento visual e movimento com o tasteskill"`
+
+---
+
+### Task 15: Deploy (Docker Compose + Caddy)
 
 **Files:**
 - Create: `deploy/{docker-compose.yml,Caddyfile,pintor.Dockerfile,caddy.Dockerfile,.env.exemplo}`
@@ -730,7 +816,7 @@ test('evento desligado durante o uso', async ({ page }) => { /* 503 EVENTO_INATI
   - `docker-compose.yml`: serviços `pintor` (volumes `../estilos:/app/estilos:ro` e `../dados/acervo:/dados/acervo`, `env_file: .env`, `restart: unless-stopped`) e `caddy` (portas 80/443, volumes nomeados para `/data` e `/config`, **sem** volume do acervo).
   - `.env.exemplo` com todas as variáveis e comentários em português; `EVENTO_ATIVO=false`.
 
-- [ ] **Step 2: Validar.** Run: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env.exemplo config` — Expected: sem erros, e a saída do serviço `caddy` não contém `acervo`. Se o Docker não estiver disponível nesta máquina, fazer a validação na VPS na Task 15.
+- [ ] **Step 2: Validar.** Run: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env.exemplo config` — Expected: sem erros, e a saída do serviço `caddy` não contém `acervo`. Se o Docker não estiver disponível nesta máquina, fazer a validação na VPS na Task 17.
 
 - [ ] **Step 3: Subir localmente (se houver Docker).** `DOMINIO=localhost`, `EVENTO_ATIVO=true`, `PROVEDOR=falso`; Run: `curl -k https://localhost/api/saude` — Expected: `"ok":true`; abrir `https://localhost` e fazer uma pintura completa.
 
@@ -738,7 +824,7 @@ test('evento desligado durante o uso', async ({ page }) => { /* 503 EVENTO_INATI
 
 ---
 
-### Task 14: Operação do evento (backup, QR code, checklist)
+### Task 16: Operação do evento (backup, QR code, checklist)
 
 **Files:**
 - Create: `scripts/package.json`, `scripts/backup-acervo.sh`, `scripts/gerar-qrcode.mjs`, `docs/checklist-evento.md`
@@ -760,7 +846,7 @@ test('evento desligado durante o uso', async ({ page }) => { /* 503 EVENTO_INATI
 
 ---
 
-### Task 15: Publicação na VPS e validação em campo (com o usuário)
+### Task 17: Publicação na VPS e validação em campo (com o usuário)
 
 Sem código novo; precisa dos insumos da spec seção 12.
 
@@ -772,7 +858,7 @@ Sem código novo; precisa dos insumos da spec seção 12.
 
 - [ ] **Step 2: Publicar na VPS** (com o usuário, via SSH): apontar o subdomínio, clonar o repositório, `cp deploy/.env.exemplo deploy/.env` e preencher, `mkdir -p dados/acervo && sudo chown 1000:1000 dados/acervo`, `docker compose -f deploy/docker-compose.yml up -d --build`. Se as portas 80/443 já estiverem em uso, trocar o Caddy por um bloco no servidor existente com o mesmo roteamento. Verificar: `curl https://<subdominio>/api/saude` → `"ok":true`.
 
-- [ ] **Step 3: Testes em celulares reais** com `EVENTO_ATIVO=true` e o provedor real: iPhone (Safari), Android (Chrome), QR lido pela câmera nativa, pelo Instagram e pelo WhatsApp, um celular antigo, internet lenta (modo 3G ou rede ruim). Registrar em `docs/validacao-campo.md`: aparelho, navegador, tempo da pintura, problemas.
+- [ ] **Step 3: Testes em celulares reais** com `EVENTO_ATIVO=true` e o provedor real: iPhone (Safari), Android (Chrome), QR lido pela câmera nativa, pelo Instagram e pelo WhatsApp, um celular antigo, internet lenta (modo 3G ou rede ruim). Registrar em `docs/validacao-campo.md`: aparelho, navegador, tempo da pintura, problemas (inclusive visuais: fonte que não carregou, imagem lenta, texto cortado).
 
 - [ ] **Step 4: Ensaio geral** na semana do evento: 20 a 30 pessoas ao mesmo tempo. Conferir no log a fila, os limites e a contagem do dia; conferir o backup baixado. Registrar em `docs/validacao-campo.md` e corrigir o que aparecer.
 
