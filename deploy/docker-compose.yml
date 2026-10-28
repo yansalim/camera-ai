@@ -1,0 +1,88 @@
+# Produção: caddy (HTTPS + site) e pintor (API). Variáveis em deploy/.env (copie de .env.exemplo).
+#   docker compose -f deploy/docker-compose.yml up -d --build
+#   bash deploy/verificar.sh https://SUBDOMINIO   (confere as proteções abaixo)
+name: camera-ai
+
+# Proteções comuns aos dois contêineres.
+x-protecoes: &protecoes
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  pintor:
+    <<: *protecoes
+    build:
+      context: ..
+      dockerfile: deploy/pintor.Dockerfile
+    # Sem "ports": o pintor só é alcançado pelo Caddy, na rede interna do Compose.
+    # Só as variáveis listadas entram no contêiner; vazias, valem os padrões do pintor.
+    environment:
+      PROVEDOR: ${PROVEDOR:-falso}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GOOGLE_CLOUD_LOCATION: ${GOOGLE_CLOUD_LOCATION:-}
+      MODELO_IMAGEM: ${MODELO_IMAGEM:-}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/adc
+      EVENTO_ATIVO: ${EVENTO_ATIVO:-false}
+      LIMITE_APARELHO: ${LIMITE_APARELHO:-}
+      JANELA_APARELHO_MIN: ${JANELA_APARELHO_MIN:-}
+      LIMITE_IP: ${LIMITE_IP:-}
+      JANELA_IP_MIN: ${JANELA_IP_MIN:-}
+      TETO_DIARIO: ${TETO_DIARIO:-}
+      CONCORRENCIA: ${CONCORRENCIA:-}
+      TEMPO_MAXIMO_S: ${TEMPO_MAXIMO_S:-}
+    secrets: [adc]
+    volumes:
+      - ../estilos:/app/estilos:ro
+      - ../dados/acervo:/dados/acervo
+    tmpfs:
+      - /tmp:size=64m
+    mem_limit: 1g
+    pids_limit: 256
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/api/saude').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  caddy:
+    <<: *protecoes
+    build:
+      context: ..
+      dockerfile: deploy/caddy.Dockerfile
+    environment:
+      DOMINIO: ${DOMINIO:?defina DOMINIO no deploy/.env}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    # Usuário sem privilégios abrindo as portas 80/443 sem nenhuma capability.
+    sysctls:
+      net.ipv4.ip_unprivileged_port_start: 0
+    # Certificados e configuração do Caddy. Sem nenhum volume do acervo.
+    volumes:
+      - caddy-dados:/data
+      - caddy-config:/config
+    tmpfs:
+      - /tmp:size=16m
+    mem_limit: 256m
+    pids_limit: 128
+    depends_on:
+      pintor:
+        condition: service_healthy
+
+volumes:
+  caddy-dados:
+  caddy-config:
+
+secrets:
+  # Login OAuth do Google Cloud. Fica fora do repositório; chega ao pintor somente leitura.
+  adc:
+    file: ${ADC_ARQUIVO:?defina ADC_ARQUIVO no deploy/.env}

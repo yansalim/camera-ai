@@ -1,0 +1,45 @@
+# Contexto dos builds de deploy/: só o código que as imagens usam.
+# Segredos, dados do evento e dependências locais nunca entram numa imagem.
+
+# Segredos
+**/.env
+**/.env.*
+**/*application_default_credentials*.json
+**/*credentials*.json
+deploy/adc-vazio.json
+**/segredos
+**/*.pem
+**/*.key
+
+# Dados do evento (acervo e backups) e estilos (montados em tempo de execução)
+dados
+estilos
+
+# Dependências e builds locais (as imagens instalam e compilam do zero)
+**/node_modules
+**/dist
+**/dist-vitrine
+**/*.tsbuildinfo
+
+# Testes e ferramentas que não vão para produção
+servidor/test
+servidor/scripts
+servidor/comparativo
+site/test-results
+site/playwright-report
+site/blob-report
+site/.vitest
+site/.taste-skill
+site/e2e/.acervo
+**/coverage
+
+# Repositório, documentação e editores
+.git
+.github
+.claude
+.superpowers
+.vscode
+.idea
+docs
+**/*.md
+**/*.log

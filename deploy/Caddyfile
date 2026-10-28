@@ -1,0 +1,54 @@
+{
+	# Sem API de administração: a configuração só muda reconstruindo a imagem.
+	admin off
+	servers {
+		# Cabeçalhos lentos derrubam a conexão; o envio da foto tem até 60 s (celular em rede ruim).
+		timeouts {
+			read_header 10s
+			read_body 60s
+			idle 2m
+		}
+	}
+}
+
+# DOMINIO vem do deploy/.env. Com um subdomínio, o Caddy emite o certificado HTTPS (Let's Encrypt).
+# Para testar no computador, sem certificado: DOMINIO=http://localhost
+{$DOMINIO} {
+	encode zstd gzip
+
+	header {
+		# Só HTTPS por um ano (o navegador ignora em http://localhost).
+		Strict-Transport-Security "max-age=31536000"
+		# Só o próprio site: scripts, estilos, fontes e a API. Imagens também de blob: (foto e pintura no aparelho).
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; media-src 'self' blob: mediastream:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		# A câmera só para o próprio site; microfone, localização e o resto, para ninguém.
+		Permissions-Policy "camera=(self), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "no-referrer"
+		Cross-Origin-Opener-Policy "same-origin"
+		-Server
+	}
+
+	handle /api/* {
+		# A foto chega com até 5 MB. Acima de 6 MB o Caddy recusa: na hora, pelo Content-Length
+		# anunciado (o navegador sempre manda), ou no meio do envio, quando o corpo vem sem tamanho.
+		@grande header_regexp Content-Length ^([6-9][0-9]{6}|[0-9]{8,})$
+		respond @grande 413
+		request_body {
+			max_size 6MB
+		}
+		reverse_proxy pintor:3000
+	}
+
+	handle {
+		root * /srv/site
+		# Arquivos com hash no nome nunca mudam; as páginas sempre conferem a versão nova.
+		@imutaveis path /assets/*
+		header @imutaveis Cache-Control "public, max-age=31536000, immutable"
+		@paginas not path /assets/* /fontes/*
+		header @paginas Cache-Control "no-cache"
+		try_files {path} {path}.html /index.html
+		file_server
+	}
+}

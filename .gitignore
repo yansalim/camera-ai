@@ -7,9 +7,19 @@ dist/
 .env
 .env.*
 !.env.exemplo
-# Login OAuth do Google Cloud (Application Default Credentials)
+.envrc
+# Login OAuth do Google Cloud (Application Default Credentials) e qualquer outra credencial
 *application_default_credentials*.json
+*credentials*.json
 deploy/adc-vazio.json
+segredos/
+*.pem
+*.key
+*.p12
+*.pfx
+# Ajustes locais do Compose (portas, caminhos e variáveis de uma máquina só)
+docker-compose.override.y*ml
+compose.override.y*ml
 
 # Dados gerados em execução (acervo de fotos e backups)
 dados/
