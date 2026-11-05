@@ -33,7 +33,9 @@ O pintor não precisa saber da regra de preservar o rosto: ela é acrescentada a
    npx tsx scripts/preparar-estilo.ts <imagem-da-obra> ../estilos/<id> [x,y,largura,altura]
    ```
 
-   O recorte é opcional, em pixels da imagem original. O script gera `miniatura.jpg` (lado maior 1080 px) e `referencia.jpg` (lado maior 1024 px).
+   O recorte é opcional, em pixels da imagem original. O script gera `miniatura.jpg` (lado maior 1080 px) e `referencia.jpg` (lado maior 1024 px). Os cartões da tela de escolha são quadrados, então prefira um recorte quadrado.
+
+   Anote a obra, a fonte, a licença e o recorte em [`FONTES.md`](FONTES.md).
 4. Reinicie o pintor para recarregar o catálogo:
 
    ```bash

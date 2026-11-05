@@ -81,10 +81,9 @@ describe('carregarCatalogo', () => {
     expect(avisar).toHaveBeenCalledWith(expect.stringContaining('Estilo "numero" ignorado'))
   })
 
-  // Marco 1 (protótipo): só a Mona Lisa. No Marco 2 volta a esperar os 6 estilos na ordem.
-  it('o catálogo real tem a Mona Lisa', () => {
+  it('o catálogo real tem os 6 estilos na ordem', () => {
     const cat = carregarCatalogo(path.resolve('../estilos'), avisar)
-    expect(cat.ativos().map(e => e.id)).toEqual(['mona-lisa'])
+    expect(cat.ativos().map(e => e.id)).toEqual(['arte-grega', 'renascimento', 'cubismo', 'expressionismo', 'van-gogh', 'mona-lisa'])
     expect(cat.buscar('mona-lisa')).toMatchObject({ nome: 'Mona Lisa', legenda: 'Leonardo da Vinci' })
     expect(avisar).not.toHaveBeenCalled()
   })
