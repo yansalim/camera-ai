@@ -109,7 +109,7 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
 - **Autenticação só por login OAuth** com a conta Google do usuário (Application Default Credentials obtidas com `gcloud auth application-default login`), no comparativo e no servidor. Sem chave de API e sem conta de serviço.
 - O teste comparativo escolhe o modelo entre Nano Banana 2.1, Nano Banana 2 e Nano Banana Pro (ids conferidos no Vertex AI na data do teste). Estimativa para 2.000 fotos: ~US$ 67, ~US$ 134 e ~US$ 268, todos dentro do crédito (o Pro fica no limite). O modelo escolhido fica na variável `MODELO_IMAGEM`.
 - Antes de tudo, uma **chamada de teste** confirma que o crédito da avaliação libera o modelo de imagem. Se não liberar, o plano B é a fal.ai (paga por foto), trocando só o adaptador.
-- O prompt enviado combina o prompt do estilo com uma instrução fixa de preservar rosto, pose e composição da foto. Se o estilo tiver `referencia.jpg`, ela também é enviada como imagem de referência.
+- O prompt enviado combina o prompt do estilo com uma instrução fixa de preservar a identidade, a pose e o enquadramento da foto. A foto vai rotulada como Image 1, e a saída é pedida na proporção dela. A `referencia.jpg` só é enviada, como Image 2 e amostra de paleta e pincelada, quando o estilo tem `"usarReferencia": true`. **Atualizado em 2026-11-05:** o modelo escolhido é o Nano Banana 2.1, e a referência ficou desligada por padrão porque fez o modelo copiar o conteúdo da obra (ver `docs/decisoes.md`).
 
 ### 4.4 Infraestrutura
 

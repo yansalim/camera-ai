@@ -5,8 +5,8 @@ import { ApiError } from '@google/genai'
 import { describe, expect, it, vi } from 'vitest'
 import { classificarStatus } from '../src/provedores/http.js'
 import { ErroRecusa, ErroTemporario } from '../src/provedores/tipos.js'
-import { criarProvedorVertex, type GerarConteudo, interpretarVertex } from '../src/provedores/vertex.js'
-import { estiloDeTeste } from './ajudantes.js'
+import { criarProvedorVertex, type GerarConteudo, interpretarVertex, proporcaoMaisProxima } from '../src/provedores/vertex.js'
+import { estiloDeTeste, gerarJpeg } from './ajudantes.js'
 
 const base64 = (s: string) => Buffer.from(s).toString('base64')
 
@@ -50,10 +50,19 @@ describe('interpretarVertex', () => {
   })
 })
 
+describe('proporcaoMaisProxima', () => {
+  it('escolhe a proporção suportada mais próxima', () => {
+    expect(proporcaoMaisProxima(720, 900)).toBe('4:5')
+    expect(proporcaoMaisProxima(3000, 4000)).toBe('3:4')
+    expect(proporcaoMaisProxima(1170, 2532)).toBe('9:16')
+    expect(proporcaoMaisProxima(4000, 3000)).toBe('4:3')
+  })
+})
+
 describe('criarProvedorVertex', () => {
   const opcoes = { projeto: 'p', local: 'global', modelo: 'gemini-nano-banana-2.1' }
 
-  it('envia prompt, foto e referência, nessa ordem, pedindo só imagem', async () => {
+  it('envia prompt, foto e referência rotuladas, nessa ordem, pedindo só imagem', async () => {
     const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ref-'))
     const caminhoReferencia = path.join(dir, 'referencia.jpg')
     fs.writeFileSync(caminhoReferencia, 'ref')
@@ -65,11 +74,27 @@ describe('criarProvedorVertex', () => {
     const pedido = gerar.mock.calls[0][0]
     expect(pedido.model).toBe('gemini-nano-banana-2.1')
     expect(pedido.config).toMatchObject({ responseModalities: ['IMAGE'] })
-    const [texto, foto, referencia] = pedido.contents[0].parts
+    const [texto, rotuloFoto, foto, rotuloReferencia, referencia] = pedido.contents[0].parts
     expect(texto.text).toContain(estiloDeTeste.prompt)
-    expect(texto.text).toContain('second image')
+    expect(texto.text).toContain('Image 2 is a small crop')
+    expect(rotuloFoto.text).toBe("Image 1: the visitor's photo.")
     expect(foto.inlineData).toEqual({ mimeType: 'image/jpeg', data: base64('foto') })
+    expect(rotuloReferencia.text).toBe('Image 2: style sample only.')
     expect(referencia.inlineData).toEqual({ mimeType: 'image/jpeg', data: base64('ref') })
+  })
+
+  it('pede a proporção da foto', async () => {
+    for (const [largura, altura, esperada] of [[720, 900, '4:5'], [1080, 1920, '9:16'], [1000, 1000, '1:1'], [1600, 1200, '4:3']] as const) {
+      const gerar = vi.fn<GerarConteudo>(async () => respostaComImagem)
+      await criarProvedorVertex(opcoes, gerar).pintar(await gerarJpeg(largura, altura), estiloDeTeste)
+      expect(gerar.mock.calls[0][0].config.imageConfig).toEqual({ aspectRatio: esperada })
+    }
+  })
+
+  it('foto sem dimensões legíveis segue sem proporção', async () => {
+    const gerar = vi.fn<GerarConteudo>(async () => respostaComImagem)
+    await criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste)
+    expect(gerar.mock.calls[0][0].config.imageConfig).toBeUndefined()
   })
 
   it('repassa o cancelamento e um tempo limite ao SDK', async () => {
@@ -85,8 +110,8 @@ describe('criarProvedorVertex', () => {
     const gerar = vi.fn<GerarConteudo>(async () => respostaComImagem)
     await criarProvedorVertex(opcoes, gerar).pintar(Buffer.from('foto'), estiloDeTeste)
     const parts = gerar.mock.calls[0][0].contents[0].parts
-    expect(parts).toHaveLength(2)
-    expect(parts[0].text).not.toContain('second image')
+    expect(parts).toHaveLength(3)
+    expect(parts[0].text).not.toContain('Image 2')
   })
 
   it('erro HTTP da API passa pela classificação de status', async () => {
