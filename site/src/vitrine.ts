@@ -1,11 +1,10 @@
 // Vitrine (Decisão 12): monta uma tela com estado fixo, para o inspetor fotografar sem passar pelo fluxo.
 // Só entra no build com --mode vitrine. Estados: inicio, inicio&evento=inativo, quadros, foto, revelacao,
-// resultado, resultado&versao=so-pintura, resultado&dica=ios, erro&codigo=LIMITE_APARELHO|RECUSADA|EVENTO_INATIVO.
+// resultado, resultado&estilo=<id>, resultado&versao=so-pintura, resultado&dica=ios, erro&codigo=LIMITE_APARELHO|RECUSADA|EVENTO_INATIVO.
 import './estilos.css'
 import pinturaUrl from '../test/fixtures/pintura-exemplo.jpg?url'
 import selfieUrl from '../test/fixtures/selfie.jpg?url'
 import { buscarEstilos, ErroPintura } from './api'
-import { CONFIG } from './config'
 import { comporMoldura } from './moldura'
 import { estado, irPara } from './navegacao'
 import { montarErro } from './telas/erro'
@@ -29,7 +28,10 @@ const marcar = (tela: string) => {
 registrarTelas()
 const parametros = new URLSearchParams(location.search)
 const tela = parametros.get('tela') ?? 'inicio'
-if (tela !== 'inicio') estado.estilo = (await buscarEstilos())[0]
+if (tela !== 'inicio') {
+  const estilos = await buscarEstilos()
+  estado.estilo = estilos.find(e => e.id === parametros.get('estilo')) ?? estilos[0]
+}
 
 switch (tela) {
   case 'inicio':
@@ -49,7 +51,7 @@ switch (tela) {
     estado.foto = await baixar(selfieUrl)
     const imagem = await baixar(pinturaUrl)
     estado.resultado = { imagem, codigo: 'K7M-3PX' }
-    estado.comMoldura = await comporMoldura(imagem, CONFIG.assinatura)
+    estado.comMoldura = await comporMoldura(imagem, estado.estilo!.id)
     marcar('resultado')
     montarResultado(raiz, { versao: parametros.get('versao') === 'so-pintura' ? 'pintura' : 'moldura', dicaIos: parametros.get('dica') === 'ios' })
     break

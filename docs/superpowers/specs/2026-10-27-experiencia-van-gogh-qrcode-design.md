@@ -50,7 +50,7 @@ Interface toda em português, pensada para celular.
 3. **Foto** — botão **"Tirar foto"** que pede permissão e abre a **câmera frontal dentro do site** (`getUserMedia`), com a imagem ao vivo espelhada como selfie e o botão **"Fotografar"**. Não existe seletor de arquivo: a foto vem sempre da câmera, nunca da galeria (decisão do usuário em 2026-10-27; o `<input capture>` abria arquivos no computador e a galeria em alguns navegadores embutidos). Sem permissão, sem câmera ou num navegador que não libera a câmera (alguns embutidos no Instagram e no WhatsApp), aparece um aviso dizendo o que fazer (permitir a câmera ou abrir o link no Chrome ou no Safari), nunca a galeria. A câmera exige HTTPS, que o Caddy já fornece.
 4. **Revelação** (5 a 20 s) — a foto aparece e vai sendo "pintada" com animação de pinceladas e frases alternadas, próprias do estilo escolhido (em Van Gogh, "Misturando os amarelos…"; na Arte Grega, "Esculpindo os cachos…"). Quando a pintura chega, ela é revelada com pinceladas varrendo a tela.
 5. **Resultado**
-   - Chave **Com moldura / Só a pintura**. A versão com moldura é composta no celular: moldura dourada de museu + texto de assinatura configurável (ex.: @perfil ou #hashtag).
+   - Chave **Com moldura / Só a pintura**. A versão com moldura é composta no celular: uma moldura clássica própria de cada estilo (desenhada em canvas, em `site/src/moldura.ts`), com uma plaqueta embaixo da pintura que leva a logo da escola e o texto configurável da feira ("Feira de Ciências CTPM · Araguari 2026"). Decisão do usuário em 2026-11-05: o texto e a logo substituíram a assinatura @perfil.
    - **Compartilhar**: menu nativo do celular (Web Share API com arquivo). Sem suporte, cai para **Salvar**.
    - **Salvar**: baixa a imagem; no iOS, se o download não for possível, abre a imagem com a dica "toque e segure para salvar".
    - **Código da obra** exibido discretamente (ex.: `K7M-3PX`), para pedidos de exclusão.
@@ -77,10 +77,10 @@ Celular do visitante ──HTTPS──▶  VPS do usuário (Docker Compose)
   - fluxo de telas;
   - preparar a foto: aplicar a rotação correta (orientação EXIF), redimensionar para no máximo **1600 px** no lado maior e reencodar como **JPEG qualidade 0,85** (cerca de 300 a 500 KB). O reencode também remove metadados como localização GPS;
   - chamar a API e mostrar a revelação;
-  - compor a versão com moldura (canvas: pintura + PNG da moldura + texto de assinatura);
+  - compor a versão com moldura (canvas: pintura + moldura do estilo + plaqueta com a logo e o texto da feira);
   - compartilhar e salvar.
 - Identificador do aparelho: UUID aleatório gerado no aceite, guardado no `localStorage` e enviado no cabeçalho `X-Aparelho`. Serve só para limitar uso (seção 6).
-- Configuração do site (arquivo de config no build): texto da assinatura, nome da escola, versão atual dos termos.
+- Configuração do site (arquivo de config no build): texto da plaqueta da moldura, nome da escola, versão atual dos termos.
 
 ### 4.2 Serviço "pintor" (backend)
 
@@ -279,6 +279,6 @@ docs/        specs, rascunho dos termos, checklist do evento
 - Subdomínio a usar e acesso SSH à VPS (e se as portas 80/443 já estão em uso).
 - Gmail pessoal com a avaliação gratuita do Google Cloud ativada, um projeto com a API do Vertex AI habilitada e o login OAuth feito (`gcloud auth application-default login`).
 - Nome da escola e e-mail de contato para os termos.
-- Texto da assinatura da moldura (@perfil ou #hashtag).
+- Texto da plaqueta da moldura (hoje "Feira de Ciências CTPM" e "Araguari 2026").
 - Revisão dos termos pela escola.
 - Data exata do evento.
