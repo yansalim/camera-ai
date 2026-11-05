@@ -1,0 +1,8 @@
+{
+  "nome": "Van Gogh",
+  "legenda": "A Noite Estrelada · Vincent van Gogh",
+  "prompt": "Repaint this photo as a Vincent van Gogh oil painting from 1889, combining the brushwork of his Saint-Rémy self-portraits with the sky of The Starry Night. Behind each person swirls a deep-blue night sky with glowing yellow stars, a crescent moon, a dark flame-like cypress and a small sleeping village. Everything, faces included, is built from thick impasto strokes of pure colour that follow the forms: short directional dabs model each person's own face, skin tone and features, while long curving strokes flow through hair, clothing and sky. The faces stay calm, clear and true to life, with the swirling energy around them. Richly textured paint with visible ridges.",
+  "frases": ["Misturando os amarelos…", "Pintando o céu em espirais…", "Engrossando as pinceladas…", "Secando a tinta…"],
+  "ordem": 5,
+  "ativo": true
+}

@@ -1,0 +1,8 @@
+{
+  "nome": "Expressionismo",
+  "legenda": "O Grito · Edvard Munch",
+  "prompt": "Repaint this photo as an Expressionist painting in tempera and oil on cardboard in the style of Edvard Munch's The Scream (1893). Behind each person, a wooden bridge railing runs diagonally under a swirling blood-orange, red and yellow sunset sky above a dark blue fjord. Long, wavy, rhythmic brushstrokes flow through the sky, the water, the clothing and the hair, with raw, intense, unblended colour and visible cardboard texture. The faces stay fully human and true to life, each with the person's own expression, skin tone and features, painted in Munch's loose strokes with warm ochre light and cool blue shadows. The emotional intensity lives in the sky and the swirling lines.",
+  "frases": ["Incendiando o céu…", "Ondulando as linhas…", "Carregando nas emoções…", "Secando a tinta…"],
+  "ordem": 4,
+  "ativo": true
+}

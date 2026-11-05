@@ -3,9 +3,8 @@ import { aceitarEEscolher, lerInfoDoAcervo, simularCamera, tirarFoto } from './a
 
 test.beforeEach(({ page }) => simularCamera(page))
 
-// Marco 1: o estilo é a Mona Lisa. No Marco 2 o fluxo completo usa van-gogh, como no plano.
-const ESTILO = 'mona-lisa'
-const FRASES = /Esfumando as sombras…|Pintando a paisagem ao fundo…|Suavizando a luz…|Envelhecendo o verniz…/
+const ESTILO = 'van-gogh'
+const FRASES = /Misturando os amarelos…|Pintando o céu em espirais…|Engrossando as pinceladas…|Secando a tinta…/
 const CODIGO = /^[2-9A-HJKMNP-Z]{3}-[2-9A-HJKMNP-Z]{3}$/
 const SEM_CAMERA_NO_WEBKIT =
   'O WebKit do Playwright no Windows não tem câmera (navigator.mediaDevices) nem canvas.captureStream; no iPhone de verdade a câmera é testada à mão (spec 8.5).'
@@ -80,11 +79,10 @@ test.describe('com a câmera', () => {
     await contexto.close()
   })
 
-  // Marco 1: 1 cartão. No Marco 2, 6.
   test('pintar de novo volta aos quadros', async ({ page }) => {
     await pintarAteOResultado(page)
     await page.getByTestId('botao-pintar-de-novo').click()
-    await expect(page.getByTestId('cartao-estilo')).toHaveCount(1)
+    await expect(page.getByTestId('cartao-estilo')).toHaveCount(6)
   })
 
   test('erro de limite: tentar de novo reenvia a mesma foto', async ({ page }) => {

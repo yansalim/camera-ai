@@ -1,0 +1,8 @@
+{
+  "nome": "Cubismo",
+  "legenda": "Retrato de Picasso · Juan Gris",
+  "prompt": "Repaint this photo as a Synthetic Cubist oil painting in the style of Juan Gris's Portrait of Pablo Picasso (1912) and Picasso's works of the 1910s. Break the background, clothing and shoulders into many interlocking geometric planes seen from several viewpoints at once, with angular facets, crisp dark outlines and flat areas of ochre, slate grey, cool blue and muted green. The face is built from a few large, clean planes that follow its real structure: eyes, nose, mouth, glasses and beard stay in their true positions and proportions, so each person is instantly recognisable, with their own skin tone shown as warm and cool facets of the same hue. Matte oil paint with visible brushwork.",
+  "frases": ["Desmontando os ângulos…", "Olhando de todos os lados ao mesmo tempo…", "Recortando os planos…", "Encaixando as formas…"],
+  "ordem": 3,
+  "ativo": true
+}

@@ -10,13 +10,15 @@ test('início mostra o resumo e abre os termos', async ({ page }) => {
   await expect(page.getByText(/exclusão/).first()).toBeVisible()
 })
 
-// Marco 1: só a Mona Lisa. No Marco 2 espera 6 estilos, o primeiro sendo Arte Grega / Estátua de mármore.
-test('aceite grava v1 e leva aos estilos em ordem', async ({ page }) => {
+test('aceite grava v1 e leva aos 6 estilos em ordem', async ({ page }) => {
   await page.goto('/')
   await page.getByTestId('botao-criar').click()
-  await expect(page.getByTestId('cartao-estilo')).toHaveCount(1)
-  await expect(page.getByTestId('cartao-estilo').first()).toContainText('Mona Lisa')
-  await expect(page.getByTestId('cartao-estilo').first()).toContainText('Leonardo da Vinci')
+  const cartoes = page.getByTestId('cartao-estilo')
+  await expect(cartoes).toHaveCount(6)
+  for (const [i, id] of ['arte-grega', 'renascimento', 'cubismo', 'expressionismo', 'van-gogh', 'mona-lisa'].entries())
+    await expect(cartoes.nth(i)).toHaveAttribute('data-estilo-id', id)
+  await expect(cartoes.first()).toContainText('Arte Grega')
+  await expect(cartoes.first()).toContainText('Hermes · Praxíteles')
   expect(JSON.parse(await page.evaluate(() => localStorage.getItem('aceite')!)).termosVersao).toBe('v1')
 })
 

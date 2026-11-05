@@ -26,19 +26,26 @@ describe('erros', () => {
 })
 
 describe('rotas básicas', () => {
-  // Marco 1: só a Mona Lisa. No Marco 2 espera 6 estilos, o primeiro sendo arte-grega.
-  it('GET /api/estilos lista ativos sem expor o prompt', async () => {
+  it('GET /api/estilos lista os 6 ativos na ordem sem expor o prompt', async () => {
     const r = await (await app()).inject('/api/estilos')
     expect(r.statusCode).toBe(200)
-    expect(r.json()).toEqual([
-      {
-        id: 'mona-lisa',
-        nome: 'Mona Lisa',
-        legenda: 'Leonardo da Vinci',
-        frases: ['Esfumando as sombras…', 'Pintando a paisagem ao fundo…', 'Suavizando a luz…', 'Envelhecendo o verniz…'],
-        miniaturaUrl: '/api/estilos/mona-lisa/miniatura',
-      },
-    ])
+    const estilos = r.json()
+    expect(estilos.map((e: { id: string }) => e.id)).toEqual(['arte-grega', 'renascimento', 'cubismo', 'expressionismo', 'van-gogh', 'mona-lisa'])
+    expect(estilos[0]).toEqual({
+      id: 'arte-grega',
+      nome: 'Arte Grega',
+      legenda: 'Hermes · Praxíteles',
+      frases: ['Escolhendo o melhor mármore…', 'Esculpindo os cachos…', 'Polindo a pedra…', 'Subindo no pedestal…'],
+      miniaturaUrl: '/api/estilos/arte-grega/miniatura',
+    })
+    expect(estilos.at(-1)).toEqual({
+      id: 'mona-lisa',
+      nome: 'Mona Lisa',
+      legenda: 'Leonardo da Vinci',
+      frases: ['Esfumando as sombras…', 'Pintando a paisagem ao fundo…', 'Suavizando a luz…', 'Envelhecendo o verniz…'],
+      miniaturaUrl: '/api/estilos/mona-lisa/miniatura',
+    })
+    for (const e of estilos) expect(e).not.toHaveProperty('prompt')
   })
 
   it('GET miniatura devolve JPEG com cache', async () => {

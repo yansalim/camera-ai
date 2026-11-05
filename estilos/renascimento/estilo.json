@@ -1,0 +1,8 @@
+{
+  "nome": "Renascimento",
+  "legenda": "O Nascimento de Vênus · Botticelli",
+  "prompt": "Repaint this photo as an Italian Renaissance tempera painting on wooden panel by Sandro Botticelli (c. 1485), in the style of The Birth of Venus and Primavera. Use his graceful, precise dark outlines, pale luminous modelling with very soft shadows, and a smooth matte surface with delicate gold-leaf highlights. Each person keeps their real face, skin tone and hairstyle; hair keeps its own colour and length, painted as fine flowing strands touched with thin gold lines. Everyone wears a modest Florentine gown or tunic embroidered with small flowers, like the figures of Primavera. Behind them: a calm pale sea-green sea with stylised V-shaped waves, a pale blue sky and pink roses drifting through the air.",
+  "frases": ["Preparando a têmpera…", "Desenhando os contornos…", "Soltando os cabelos ao vento…", "Aplicando o ouro…"],
+  "ordem": 2,
+  "ativo": true
+}
