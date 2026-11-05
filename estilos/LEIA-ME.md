@@ -7,7 +7,7 @@ estilos/
   mona-lisa/
     estilo.json      textos e prompt (obrigatório)
     miniatura.jpg    imagem do cartão (obrigatória)
-    referencia.jpg   enviada à IA como referência de estilo (opcional)
+    referencia.jpg   recorte da obra; vai à IA só com "usarReferencia": true (opcional)
 ```
 
 ## `estilo.json`
@@ -20,8 +20,9 @@ estilos/
 | `frases` | lista de textos | Frases que alternam na animação enquanto a IA trabalha (ao menos uma) |
 | `ordem` | número | Posição na tela de escolha (menor primeiro) |
 | `ativo` | `true` / `false` | `false` esconde o estilo sem apagá-lo |
+| `usarReferencia` | `true` / `false` (opcional) | `true` envia a `referencia.jpg` à IA como amostra de paleta e pincelada. Padrão `false`: no teste, a referência fez o modelo copiar pose e roupa da obra |
 
-O pintor não precisa saber da regra de preservar o rosto: ela é acrescentada a todo prompt pelo servidor.
+O prompt do estilo não precisa falar de preservar o rosto: o servidor acrescenta a todo prompt uma instrução fixa de identidade, enquadramento, roupa modesta e saída sem moldura nem assinatura (`servidor/src/provedores/prompt.ts`). Escreva o prompt em frases completas, começando pelo verbo ("Repaint this photo as…"), dizendo o material, a luz e o que vira o fundo e a roupa. Exemplos e o raciocínio de cada estilo estão em [docs/proposta-prompts.md](../docs/proposta-prompts.md).
 
 ## Incluir um estilo
 

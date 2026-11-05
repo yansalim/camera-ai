@@ -21,15 +21,19 @@ function provedorRoteirizado(respostas: Array<Buffer | Error>) {
 }
 
 describe('montarPrompt', () => {
-  it('junta o prompt do estilo com a instrução fixa', () => {
+  it('junta o prompt do estilo com a instrução fixa de identidade', () => {
     const p = montarPrompt(estilo, false)
-    expect(p).toContain(estilo.prompt)
-    expect(p).toContain('recognizable')
-    expect(p).not.toContain('second image')
+    expect(p.startsWith(estilo.prompt)).toBe(true)
+    expect(p).toContain("Keep each person's identity exactly the same")
+    expect(p).toContain('modestly clothed')
+    expect(p).toContain('no frame, border, lettering or signature')
+    expect(p).not.toContain('Image 2')
   })
 
-  it('menciona a referência quando há', () => {
-    expect(montarPrompt(estilo, true)).toContain('second image')
+  it('com referência, limita a Image 2 a paleta e pincelada', () => {
+    const p = montarPrompt(estilo, true)
+    expect(p).toContain('Image 2 is a small crop of the original artwork')
+    expect(p).toContain('Take nothing else from it')
   })
 })
 

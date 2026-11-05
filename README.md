@@ -79,7 +79,7 @@ estilos/
   arte-grega/  renascimento/  cubismo/  expressionismo/  van-gogh/  mona-lisa/
     estilo.json
     miniatura.jpg
-    referencia.jpg      (opcional, enviada ao modelo como referência de estilo)
+    referencia.jpg      (opcional; enviada ao modelo só com "usarReferencia": true)
 ```
 
 ```json

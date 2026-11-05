@@ -10,6 +10,7 @@ export interface Estilo {
   ordem: number
   ativo: boolean
   caminhoMiniatura: string
+  /** Preenchido só com `referencia.jpg` na pasta e `"usarReferencia": true` no estilo.json. */
   caminhoReferencia?: string
 }
 
@@ -41,7 +42,14 @@ function lerEstilo(pasta: string, id: string): Estilo {
     throw new Error('campo "frases" precisa ser uma lista de textos com ao menos um item')
   }
 
+  if (dados.usarReferencia !== undefined && typeof dados.usarReferencia !== 'boolean') {
+    throw new Error('campo "usarReferencia" precisa ser true ou false')
+  }
+
+  // A referência só vai ao modelo quando o estilo pede: no teste de 2026-11-05 ela fez o modelo
+  // copiar pose e roupa da obra (docs/decisoes.md).
   const caminhoReferencia = path.join(pasta, 'referencia.jpg')
+  const comReferencia = dados.usarReferencia === true && fs.existsSync(caminhoReferencia)
   return {
     id,
     nome: dados.nome as string,
@@ -51,7 +59,7 @@ function lerEstilo(pasta: string, id: string): Estilo {
     ordem: dados.ordem,
     ativo: dados.ativo,
     caminhoMiniatura,
-    ...(fs.existsSync(caminhoReferencia) ? { caminhoReferencia } : {}),
+    ...(comReferencia ? { caminhoReferencia } : {}),
   }
 }
 
