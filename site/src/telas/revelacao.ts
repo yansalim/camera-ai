@@ -1,6 +1,5 @@
 import { lerAceite, obterIdAparelho } from '../aceite'
 import { ErroPintura, pintar } from '../api'
-import { CONFIG } from '../config'
 import { h } from '../dom'
 import { abrirImagem } from '../foto'
 import { comporMoldura } from '../moldura'
@@ -141,7 +140,7 @@ export async function montarRevelacao(raiz: HTMLElement, opcoes: { pedir?: boole
   const inicio = performance.now()
   try {
     const resultado = await pintar({ foto, estiloId: estilo.id, aceite, idAparelho: obterIdAparelho() })
-    const comMoldura = await comporMoldura(resultado.imagem, CONFIG.assinatura)
+    const comMoldura = await comporMoldura(resultado.imagem, estilo.id)
     const falta = DURACAO_MINIMA_MS - (performance.now() - inicio)
     if (falta > 0) await esperar(falta)
     estado.resultado = resultado
