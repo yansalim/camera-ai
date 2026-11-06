@@ -2,6 +2,11 @@
 	# Sem API de administração: a configuração só muda reconstruindo a imagem.
 	admin off
 	servers {
+		# Atrás do túnel do Cloudflare (docker-compose.tunel.yml), o IP do visitante vem em
+		# Cf-Connecting-Ip, que o Cloudflare sempre reescreve. Só vale quando o pedido chega de um
+		# proxy confiável; na VPS, sem túnel, ninguém é confiável e vale o IP da conexão.
+		trusted_proxies static {$PROXIES_CONFIAVEIS:127.0.0.1/32}
+		client_ip_headers Cf-Connecting-Ip
 		# Cabeçalhos lentos derrubam a conexão; o envio da foto tem até 60 s (celular em rede ruim).
 		timeouts {
 			read_header 10s
@@ -38,7 +43,10 @@
 		request_body {
 			max_size 6MB
 		}
-		reverse_proxy pintor:3000
+		reverse_proxy pintor:3000 {
+			# O pintor lê o IP do visitante só daqui; um X-Forwarded-For mandado pelo visitante é descartado.
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	handle {

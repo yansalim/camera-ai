@@ -12,6 +12,8 @@ dist/
 *application_default_credentials*.json
 *credentials*.json
 deploy/adc-vazio.json
+# Token do túnel do Cloudflare
+*tunel-token*
 segredos/
 *.pem
 *.key
