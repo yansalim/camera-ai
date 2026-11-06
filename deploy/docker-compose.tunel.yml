@@ -1,0 +1,62 @@
+# Túnel do Cloudflare: o site vai para a internet sem abrir nenhuma porta na rede. Vai por cima
+# do docker-compose.yml. Passo a passo em deploy/README.md.
+#
+# Servidor (cloudflared dentro do Compose, perfil "cloudflared"):
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.tunel.yml --profile cloudflared up -d --build
+# Computador com o cloudflared instalado fora do Docker (serviço do Windows, apontando para localhost:5112):
+#   docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.tunel.yml up -d --build
+#
+# No deploy/.env: DOMINIO=:80 (o Caddy só fala HTTP; o HTTPS fica com o Cloudflare).
+
+# Mesmas proteções do docker-compose.yml (âncoras YAML não atravessam arquivos).
+x-protecoes: &protecoes
+  restart: unless-stopped
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: [no-new-privileges:true]
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  caddy:
+    # Só o próprio servidor alcança o Caddy por esta porta (conferências e cloudflared de fora do
+    # Docker): nem a rede local, nem a internet. O pintor continua sem porta nenhuma.
+    ports: !override
+      - "127.0.0.1:5112:80"
+    environment:
+      # O cloudflared chega ao Caddy num IP privado; só dele o Caddy aceita o Cf-Connecting-Ip.
+      PROXIES_CONFIAVEIS: private_ranges
+    networks: [default, borda]
+
+  cloudflared:
+    <<: *protecoes
+    profiles: [cloudflared]
+    image: cloudflare/cloudflared:2026.3.0
+    # Token do túnel como segredo do Compose, fora do .env e das imagens.
+    # A rota do túnel no painel do Cloudflare aponta para http://caddy:80.
+    command: tunnel --metrics 127.0.0.1:20241 run --token-file /run/secrets/tunel
+    secrets: [tunel]
+    # Só a rede "borda": o cloudflared alcança o Caddy, nunca o pintor.
+    networks: [borda]
+    mem_limit: 256m
+    pids_limit: 128
+    healthcheck:
+      test: ["CMD", "cloudflared", "tunnel", "--metrics", "127.0.0.1:20241", "ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
+    depends_on:
+      caddy:
+        condition: service_started
+
+networks:
+  borda:
+
+secrets:
+  tunel:
+    # Só exigido com o perfil cloudflared; sem ele, o caminho padrão não precisa existir.
+    file: ${TUNEL_TOKEN_ARQUIVO:-./tunel-token.txt}
