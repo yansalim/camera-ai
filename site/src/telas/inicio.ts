@@ -4,9 +4,6 @@ import { CONFIG } from '../config'
 import { h } from '../dom'
 import { irPara } from '../navegacao'
 
-const RESUMO =
-  'Tire uma foto e veja seu autorretrato refeito pela IA no estilo de uma vanguarda artística. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros.'
-
 /** Início: o aceite. Clicar em "Quero criar minha foto" registra o aceite antes de qualquer câmera. */
 export function montarInicio(raiz: HTMLElement, opcoes: { eventoAtivo?: boolean } = {}): void {
   const botao = h('button', { type: 'button', class: 'botao', 'data-testid': 'botao-criar' }, 'Quero criar minha foto')
@@ -26,7 +23,6 @@ export function montarInicio(raiz: HTMLElement, opcoes: { eventoAtivo?: boolean 
       h(
         'div',
         { class: 'inicio-aceite' },
-        h('p', {}, RESUMO),
         h('a', { class: 'link', href: '/termos.html', 'data-testid': 'link-termos' }, 'Ler os termos de uso de imagem'),
         aviso,
         botao,

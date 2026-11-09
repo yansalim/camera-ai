@@ -7,6 +7,10 @@ const email = CONFIG.emailContato
 
 /** Itens da spec 6.2, por extenso. Rascunho: a escola revisa antes do evento. */
 const secoes: Array<[string, Array<string | Node>]> = [
+  [
+    'Em resumo',
+    ['Tire uma foto e veja seu autorretrato refeito pela IA no estilo de uma vanguarda artística. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros.'],
+  ],
   ['Quem guarda as imagens', [`${escola} guarda as fotos e as obras criadas nesta experiência.`]],
   [
     'O que é guardado',

@@ -23,7 +23,7 @@ Uma linha de afirmação e prova por tela.
 
 | Tela | Afirmação | Prova |
 |---|---|---|
-| Início | Em um minuto, a sua foto vira uma obra de arte. | O título enorme na parede vermelha e o botão logo abaixo do resumo do aceite. |
+| Início | Em um minuto, a sua foto vira uma obra de arte. | O título enorme na parede e o botão logo abaixo do link dos termos. |
 | Escolha | Dá para escolher a obra que vai guardar o seu rosto. | As obras de verdade, grandes, com nome e legenda. |
 | Foto | Basta uma foto. | Um botão grande que abre a câmera do celular, com a obra escolhida ao lado. |
 | Revelação | A IA está pintando agora. | A foto do visitante sendo pintada, com as frases do estilo. |
@@ -39,7 +39,7 @@ Uma linha de afirmação e prova por tela.
 - **Capítulos, depois trocados:** a versão aprovada tinha uma cor de parede por tela (vermelho no início, carvão na escolha, azul-noite na foto, verde na revelação, papel no resultado). Em 2026-10-27 o usuário pediu **todas as telas no verde de galeria `#1e4d3b`**. O disco do resultado e os blocos do rodapé usam o mesmo verde, mais fundo (`#163a2c`); o texto secundário fica verde-claro (`#b9cbbf`); o botão "Salvar" fica escuro (`#111111`). A troca de cor entre telas deixou de existir; o movimento da Task 14 precisa de outra assinatura.
 - **Herói (Colour field, two-ink statement), ajustado:**
   - O título fica numa cor só, porque a regra da casa proíbe destaque por cor dentro do título e ela vale mais que o blueprint.
-  - O botão "Quero criar minha foto" fica logo abaixo do resumo do aceite, no pé da tela, e não no canto de cima. O aceite por clique pede o texto junto do botão, e o polegar alcança o pé da tela.
+  - O botão "Quero criar minha foto" fica no pé da tela, logo abaixo do link "Ler os termos de uso de imagem", e não no canto de cima: o polegar alcança o pé da tela. Desde 2026-11-09 o resumo do aceite não aparece no início; ele abre a página dos termos, na seção "Em resumo" (pedido do usuário).
   - O canto de cima à direita leva o link dos termos.
 - **Seções:**
   - **Escolha (Wall of word tiles):** a parede de quadrados. Cada estilo ocupa um quadrado com a obra cobrindo o quadrado, mais o nome e a legenda.
@@ -66,7 +66,6 @@ Os textos marcados **[fixo]** vêm das Tasks 12–13, dos `estilo.json` ou da se
 - Canto superior direito: "Termos" **[novo]**, link para `/termos`
 - Título (h1): "IAutorretrato" **[fixo]**, numa linha só, com o "IA" em latão
 - Lema logo abaixo: "através das vanguardas artísticas" **[fixo]**
-- Resumo: "Tire uma foto e veja seu autorretrato refeito pela IA no estilo de uma vanguarda artística. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros." **[fixo]**
 - Link: "Ler os termos de uso de imagem" **[fixo]**
 - Botão: "Quero criar minha foto" **[fixo]**
 - Evento desligado: "Esta experiência está disponível no estande." **[fixo]**
