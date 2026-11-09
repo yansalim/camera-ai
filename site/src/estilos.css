@@ -31,8 +31,8 @@
   --step-body: clamp(1.0625rem, 1rem + 0.25vw, 1.1875rem);
   --step-lead: clamp(1.25rem, 1.1rem + 0.7vw, 1.625rem);
   --step-head: clamp(2rem, 1.3rem + 3.2vw, 4rem);
-  /* "Vire uma / obra de arte": linha mais longa com 12 caracteres cabe a 390 px em 15vw. */
-  --step-display: clamp(3.25rem, 15vw, 13.5rem);
+  /* "IAutorretrato" é uma palavra só (13 caracteres) e não pode quebrar: cabe a 360 px em 13vw. */
+  --step-display: clamp(2.5rem, 13vw, 13.5rem);
 
   --margin: clamp(1rem, 3vw, 2.5rem);
   --gutter: clamp(1rem, 2vw, 2rem);
@@ -100,7 +100,10 @@ button.link { min-height: 2.75rem; align-self: flex-start; text-align: left; }
 
 /* ---------- início ---------- */
 .barra { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; font-size: var(--step-small); font-weight: 600; }
-.tela-inicio h1 { margin-top: clamp(3rem, 14svh, 9rem); }
+.inicio-titulo { margin-top: clamp(3rem, 14svh, 9rem); display: grid; gap: 1rem; }
+.marca-nome { white-space: nowrap; }
+.marca-ia { color: var(--accent); }
+.marca-lema { font-size: var(--step-lead); font-weight: 600; letter-spacing: -0.02em; color: var(--muted); }
 .inicio-aceite { margin-top: auto; padding-top: 2rem; display: grid; gap: 1rem; justify-items: start; max-width: 34rem; }
 .aviso { font-size: var(--step-lead); font-weight: 600; line-height: 1.2; }
 @media (min-width: 48rem) {

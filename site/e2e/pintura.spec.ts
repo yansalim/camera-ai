@@ -56,7 +56,7 @@ test.describe('com a câmera', () => {
     })
     const codigo = await pintarAteOResultado(page)
     await page.getByTestId('botao-compartilhar').click()
-    await expect.poll(() => page.evaluate(() => (window as unknown as { __arquivos: string[] }).__arquivos)).toEqual([`pintura-moldura-${codigo}.jpg`])
+    await expect.poll(() => page.evaluate(() => (window as unknown as { __arquivos: string[] }).__arquivos)).toEqual([`iautorretrato-moldura-${codigo}.jpg`])
   })
 
   test('salvar no Android baixa o arquivo', async ({ page }, info) => {
@@ -64,7 +64,7 @@ test.describe('com a câmera', () => {
     const codigo = await pintarAteOResultado(page)
     const download = page.waitForEvent('download')
     await page.getByTestId('botao-salvar').click()
-    expect((await download).suggestedFilename()).toBe(`pintura-moldura-${codigo}.jpg`)
+    expect((await download).suggestedFilename()).toBe(`iautorretrato-moldura-${codigo}.jpg`)
   })
 
   test('salvar no iPhone mostra a dica', async ({ browser }, info) => {

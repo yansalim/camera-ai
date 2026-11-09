@@ -31,7 +31,7 @@ export function montarResultado(raiz: HTMLElement, opcoes: { versao?: Versao; di
     opcoesVersao.forEach((b, i) => b.setAttribute('aria-pressed', String((i === 0 ? 'moldura' : 'pintura') === v)))
   }
 
-  const nomeArquivo = () => `${versao === 'moldura' ? 'pintura-moldura' : 'pintura'}${resultado.codigo ? `-${resultado.codigo}` : ''}.jpg`
+  const nomeArquivo = () => `iautorretrato-${versao === 'moldura' ? 'moldura' : 'pintura'}${resultado.codigo ? `-${resultado.codigo}` : ''}.jpg`
   const botaoCompartilhar = h('button', { type: 'button', class: 'botao', 'data-testid': 'botao-compartilhar' }, 'Compartilhar')
   const botaoSalvar = h('button', { type: 'button', class: 'botao botao-tinta', 'data-testid': 'botao-salvar' }, 'Salvar')
   const pintarDeNovo = h('button', { type: 'button', class: 'link', 'data-testid': 'botao-pintar-de-novo' }, 'Pintar de novo')

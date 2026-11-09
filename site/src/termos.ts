@@ -53,7 +53,7 @@ raiz.append(
   h(
     'footer',
     { class: 'rodape' },
-    h('p', { class: 'rodape-marca' }, 'Vire uma obra de arte'),
+    h('p', { class: 'rodape-marca' }, 'IAutorretrato'),
     h('a', { class: 'rodape-convite', href: '/' }, 'Criar minha foto'),
     h('p', { class: 'rodape-versao' }, `${escola}. Termos na versão ${CONFIG.termosVersao}.`),
   ),
