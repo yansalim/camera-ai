@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 test('início mostra o resumo e abre os termos', async ({ page }) => {
   await page.goto('/')
-  await expect(page.getByRole('heading', { name: 'Vire uma obra de arte' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'IAutorretrato' })).toBeVisible()
   await expect(page.getByText('18 anos ou mais')).toBeVisible()
   await page.getByTestId('link-termos').click()
   await expect(page).toHaveURL(/\/termos/)

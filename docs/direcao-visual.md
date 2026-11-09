@@ -1,4 +1,4 @@
-# Direção visual — "Vire uma obra de arte"
+# Direção visual — "IAutorretrato: através das vanguardas artísticas"
 
 Feita com o tasteskill (`design-taste-frontend`), passos 1 a 5, na Task 11 do plano. A folha completa fica em `site/.taste-skill/direction.json` (reimprimir com `node ~/.claude/skills/design-taste-frontend/scripts/draw.mjs --show`, a partir de `site/`).
 
@@ -64,8 +64,9 @@ Os textos marcados **[fixo]** vêm das Tasks 12–13, dos `estilo.json` ou da se
 **Início** (parede vermelha)
 - Canto superior esquerdo: nome da escola (`CONFIG.escola`) **[fixo, a preencher]**
 - Canto superior direito: "Termos" **[novo]**, link para `/termos`
-- Título (h1): "Vire uma obra de arte" **[fixo]**, quebrado em "Vire uma / obra de arte"
-- Resumo: "Tire uma foto e veja ela virar uma obra de arte. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros." **[fixo]**
+- Título (h1): "IAutorretrato" **[fixo]**, numa linha só, com o "IA" em latão
+- Lema logo abaixo: "através das vanguardas artísticas" **[fixo]**
+- Resumo: "Tire uma foto e veja seu autorretrato refeito pela IA no estilo de uma vanguarda artística. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros." **[fixo]**
 - Link: "Ler os termos de uso de imagem" **[fixo]**
 - Botão: "Quero criar minha foto" **[fixo]**
 - Evento desligado: "Esta experiência está disponível no estande." **[fixo]**
@@ -108,7 +109,7 @@ Os textos marcados **[fixo]** vêm das Tasks 12–13, dos `estilo.json` ou da se
 - Os itens da spec 6.2, por extenso **[fixo no conteúdo]**
 - Seção "Créditos das imagens" **[novo]**: "Mona Lisa, Leonardo da Vinci, 1503–1519. Museu do Louvre, Paris. Imagem: Wikimedia Commons, domínio público."
 - Fechamento em quadrados:
-  - Nome grande "Vire uma obra de arte"
+  - Nome grande "IAutorretrato"
   - Convite "Criar minha foto" **[novo]**, que volta ao início
   - "Versão v1 dos termos" **[novo]**
 

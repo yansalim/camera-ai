@@ -5,7 +5,7 @@ import { h } from '../dom'
 import { irPara } from '../navegacao'
 
 const RESUMO =
-  'Tire uma foto e veja ela virar uma obra de arte. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros.'
+  'Tire uma foto e veja seu autorretrato refeito pela IA no estilo de uma vanguarda artística. Ao continuar, você declara ter 18 anos ou mais e autoriza a escola a guardar sua foto e a pintura e usá-las em eventos futuros.'
 
 /** Início: o aceite. Clicar em "Quero criar minha foto" registra o aceite antes de qualquer câmera. */
 export function montarInicio(raiz: HTMLElement, opcoes: { eventoAtivo?: boolean } = {}): void {
@@ -17,7 +17,12 @@ export function montarInicio(raiz: HTMLElement, opcoes: { eventoAtivo?: boolean 
       'section',
       { class: 'tela tela-inicio' },
       h('header', { class: 'barra' }, h('span', { class: 'marca' }, CONFIG.escola), h('a', { class: 'link', href: '/termos.html' }, 'Termos')),
-      h('h1', { class: 'display', tabindex: '-1' }, 'Vire uma', h('br'), 'obra de arte'),
+      h(
+        'hgroup',
+        { class: 'inicio-titulo' },
+        h('h1', { class: 'display marca-nome', tabindex: '-1' }, h('span', { class: 'marca-ia' }, 'IA'), 'utorretrato'),
+        h('p', { class: 'marca-lema' }, 'através das vanguardas artísticas'),
+      ),
       h(
         'div',
         { class: 'inicio-aceite' },

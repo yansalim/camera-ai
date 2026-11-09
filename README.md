@@ -1,4 +1,4 @@
-# camera-ai
+# IAutorretrato: através das vanguardas artísticas
 
 Projeto de estudo de **IA generativa de imagens**: um site aberto por QR code em que a pessoa tira uma foto com o celular e recebe essa foto refeita em um de 6 estilos de arte: Arte Grega, Renascimento, Cubismo, Expressionismo, Van Gogh ou Mona Lisa.
 
