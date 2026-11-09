@@ -1,12 +1,14 @@
 import { expect, test } from '@playwright/test'
 
-test('início mostra o resumo e abre os termos', async ({ page }) => {
+test('início não mostra o resumo; o resumo fica nos termos', async ({ page }) => {
   await page.goto('/')
   await expect(page.getByRole('heading', { name: 'IAutorretrato' })).toBeVisible()
-  await expect(page.getByText('18 anos ou mais')).toBeVisible()
+  await expect(page.getByText('18 anos ou mais')).toHaveCount(0)
   await page.getByTestId('link-termos').click()
   await expect(page).toHaveURL(/\/termos/)
   await expect(page.getByRole('heading', { name: 'Termos de uso de imagem' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'Em resumo' })).toBeVisible()
+  await expect(page.getByText(/declara ter 18 anos ou mais e autoriza a escola/)).toBeVisible()
   await expect(page.getByText(/exclusão/).first()).toBeVisible()
 })
 
