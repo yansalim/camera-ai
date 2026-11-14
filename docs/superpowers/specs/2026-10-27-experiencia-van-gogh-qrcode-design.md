@@ -279,6 +279,6 @@ docs/        specs, rascunho dos termos, checklist do evento
 - Subdomínio a usar e acesso SSH à VPS (e se as portas 80/443 já estão em uso).
 - Gmail pessoal com a avaliação gratuita do Google Cloud ativada, um projeto com a API do Vertex AI habilitada e o login OAuth feito (`gcloud auth application-default login`).
 - Nome da escola e e-mail de contato para os termos.
-- Texto da plaqueta da moldura (hoje "Feira de Ciências CTPM" e "Araguari 2026").
+- Texto da plaqueta da moldura (hoje "Feira de Ciências CTPM", "Araguari 2026" e os autores "Lucas Cordeiro / Lorrayne Andrade").
 - Revisão dos termos pela escola.
 - Data exata do evento.

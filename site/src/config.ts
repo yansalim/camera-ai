@@ -1,8 +1,8 @@
 // Valores a preencher pelo usuário ficam como 'PREENCHER' (o checklist do evento confere).
-export const CONFIG: { escola: string; emailContato: string; moldura: { titulo: string; subtitulo: string }; termosVersao: 'v1' } = {
+export const CONFIG: { escola: string; emailContato: string; moldura: { titulo: string; subtitulo: string; autores: string }; termosVersao: 'v1' } = {
   escola: 'PREENCHER',
   emailContato: 'PREENCHER',
   /** Texto da plaqueta da moldura, ao lado da logo da escola. */
-  moldura: { titulo: 'Feira de Ciências CTPM', subtitulo: 'Araguari 2026' },
+  moldura: { titulo: 'Feira de Ciências CTPM', subtitulo: 'Araguari 2026', autores: 'Lucas Cordeiro / Lorrayne Andrade' },
   termosVersao: 'v1',
 }
