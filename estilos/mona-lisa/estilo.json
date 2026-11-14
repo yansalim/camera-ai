@@ -1,7 +1,7 @@
 {
   "nome": "Mona Lisa",
   "legenda": "Leonardo da Vinci",
-  "prompt": "Repaint this photo as a Leonardo da Vinci Renaissance oil portrait in the style of the Mona Lisa (1503–1519): sfumato with soft smoky transitions between light and shadow, warm muted browns, olive greens and amber tones, hazy atmospheric landscape with winding paths and water in the background, aged varnish with fine craquelure.",
+  "prompt": "Repaint this photo as an oil portrait on poplar panel by Leonardo da Vinci, in the manner of the Mona Lisa (1503–1519). Model each person's real face with sfumato: soft, smoky transitions from warm light into deep shadow, without hard edges, in warm muted browns, olive greens and amber. Keep their own pose and hand positions, hairstyle and hair colour; clothing becomes simple dark Renaissance garments of velvet and finely pleated linen, following the shape of their own clothes. Behind them lies a hazy blue-green imaginary landscape with winding paths, a small bridge and distant water, seen from a slightly higher vantage point. The whole surface shows old yellowed varnish and fine craquelure. The face itself shows brushwork, varnish and craquelure like the rest of the panel.",
   "frases": ["Esfumando as sombras…", "Pintando a paisagem ao fundo…", "Suavizando a luz…", "Envelhecendo o verniz…"],
   "ordem": 6,
   "ativo": true

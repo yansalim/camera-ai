@@ -64,12 +64,20 @@ describe('carregarCatalogo', () => {
     expect(avisar).toHaveBeenCalledWith(expect.stringContaining('Estilo "sem-prompt" ignorado'))
   })
 
-  it('preenche caminhoReferencia só quando referencia.jpg existe', () => {
-    criarEstilo('com', valido(), { referencia: true })
-    criarEstilo('sem', valido())
+  it('preenche caminhoReferencia só com referencia.jpg e "usarReferencia": true', () => {
+    criarEstilo('com', valido({ usarReferencia: true }), { referencia: true })
+    criarEstilo('desligada', valido(), { referencia: true })
+    criarEstilo('sem-arquivo', valido({ usarReferencia: true }))
     const cat = carregarCatalogo(dir, avisar)
     expect(cat.buscar('com')?.caminhoReferencia).toBe(path.join(dir, 'com', 'referencia.jpg'))
-    expect(cat.buscar('sem')?.caminhoReferencia).toBeUndefined()
+    expect(cat.buscar('desligada')?.caminhoReferencia).toBeUndefined()
+    expect(cat.buscar('sem-arquivo')?.caminhoReferencia).toBeUndefined()
+  })
+
+  it('ignora estilo com "usarReferencia" que não é true/false', () => {
+    criarEstilo('texto', valido({ usarReferencia: 'sim' }))
+    expect(carregarCatalogo(dir, avisar).buscar('texto')).toBeUndefined()
+    expect(avisar).toHaveBeenCalledWith(expect.stringContaining('usarReferencia'))
   })
 
   it('ignora estilo.json com frases vazias ou que não são texto', () => {
