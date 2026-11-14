@@ -119,7 +119,7 @@ Cada pintura bem-sucedida é gravada em `dados/acervo/AAAA-MM-DD/<código>/` com
 site/        frontend (Vite + TypeScript)
 servidor/    serviço "pintor" (Node.js + Fastify)
 estilos/     catálogo de estilos (dados, não código)
-deploy/      docker-compose.yml, Caddyfile, Dockerfiles, .env.exemplo
+deploy/      docker-compose.yml (+ .tunel.yml), Caddyfile, Dockerfiles, .env.exemplo, README.md (guia do servidor)
 scripts/     backup do acervo e geração do QR code
 docs/        especificação, plano de implementação e checklists
 ```
@@ -166,7 +166,7 @@ cd site && npx playwright install chromium webkit
 
 ## Deploy
 
-O deploy roda numa VPS Linux com Docker Compose e dois serviços:
+O deploy roda em qualquer servidor Linux com Docker Compose. Há dois jeitos de publicar o site: atrás de um túnel do Cloudflare, sem abrir portas (guia em [`deploy/README.md`](deploy/README.md)), ou numa VPS com IP público, em que o próprio Caddy emite o certificado (passo a passo abaixo). Os serviços são:
 
 - **`caddy`** publica as portas 80 e 443, emite o certificado HTTPS (Let's Encrypt), serve o build do site e faz proxy de `/api/*` para o pintor.
 - **`pintor`** não publica porta; só o Caddy fala com ele. Monta `estilos/` como somente leitura e `dados/acervo/` com escrita. O Caddy não tem acesso ao acervo.
@@ -261,6 +261,16 @@ bash deploy/verificar.sh http://localhost
 ```
 
 O site fica em `http://localhost`. Para desligar: `docker compose -f deploy/docker-compose.yml down`.
+
+### Atrás de um túnel do Cloudflare
+
+Sem IP público e sem abrir portas: o `cloudflared` roda num contêiner ao lado do Caddy e leva o site para a internet com HTTPS, e só o site fica exposto (o pintor nem fica na mesma rede do túnel). O passo a passo completo para subir num servidor novo, com tudo o que precisa ser configurado, está em [`deploy/README.md`](deploy/README.md).
+
+Num computador que já tem o `cloudflared` instalado fora do Docker (por exemplo, como serviço do Windows apontando para `http://localhost:5112`), suba sem o perfil do contêiner:
+
+```bash
+docker compose -f deploy/docker-compose.yml -f deploy/docker-compose.tunel.yml up -d --build
+```
 
 ### Variáveis do `deploy/.env`
 
