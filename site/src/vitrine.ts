@@ -50,7 +50,7 @@ switch (tela) {
   case 'resultado': {
     estado.foto = await baixar(selfieUrl)
     const imagem = await baixar(pinturaUrl)
-    estado.resultado = { imagem, codigo: 'K7M-3PX' }
+    estado.resultado = { imagem, codigo: 'K7M-3PX', chaveMoldura: null }
     estado.comMoldura = await comporMoldura(imagem, estado.estilo!.id)
     marcar('resultado')
     montarResultado(raiz, { versao: parametros.get('versao') === 'so-pintura' ? 'pintura' : 'moldura', dicaIos: parametros.get('dica') === 'ios' })

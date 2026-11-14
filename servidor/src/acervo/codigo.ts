@@ -1,6 +1,9 @@
 /** Sem 0, O, 1, I e L, que se confundem quando a pessoa lê ou dita o código. */
 export const ALFABETO = '23456789ABCDEFGHJKMNPQRSTUVWXYZ'
 
+/** Código válido: XXX-XXX só com letras do alfabeto (também impede caminhos como ../). */
+export const FORMATO_CODIGO = new RegExp(`^[${ALFABETO}]{3}-[${ALFABETO}]{3}$`)
+
 /** Código da obra no formato XXX-XXX. */
 export function gerarCodigo(aleatorio: () => number = Math.random): string {
   const letra = () => ALFABETO[Math.floor(aleatorio() * ALFABETO.length)]

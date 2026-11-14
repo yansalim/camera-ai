@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
-import { dataLocal, gerarCodigo } from './codigo.js'
+import { dataLocal, FORMATO_CODIGO, gerarCodigo } from './codigo.js'
 
 export interface RegistroObra {
   estiloId: string
@@ -16,6 +16,11 @@ export interface Acervo {
   gravar(original: Buffer, pintura: Buffer, registro: RegistroObra): Promise<string>
   /** Obras gravadas hoje (fuso de São Paulo). */
   contarHoje(): Promise<number>
+  /**
+   * Grava moldura.jpg (a pintura na moldura, composta no celular) na pasta da obra.
+   * Devolve false se a obra não existe; nunca sobrescreve uma moldura já gravada.
+   */
+  gravarMoldura(codigo: string, moldura: Buffer): Promise<boolean>
 }
 
 const existe = (caminho: string) => fs.access(caminho).then(() => true, () => false)
@@ -62,6 +67,29 @@ export function criarAcervo(opcoes: { dir: string; agora?: () => Date; aleatorio
         throw e
       }
       return codigo
+    },
+
+    async gravarMoldura(codigo, moldura) {
+      if (!FORMATO_CODIGO.test(codigo)) return false
+      // A obra é de hoje quase sempre, mas pode ter virado o dia entre a pintura e o envio.
+      const datas = (await pastasDeDatas(dir)).sort().reverse()
+      for (const dia of datas) {
+        const pasta = path.join(dir, dia, codigo)
+        if (!(await existe(pasta))) continue
+        const temporario = path.join(pasta, '.moldura.tmp')
+        await fs.writeFile(temporario, moldura)
+        try {
+          // link falha se moldura.jpg já existe: a primeira gravada fica.
+          await fs.link(temporario, path.join(pasta, 'moldura.jpg'))
+        } catch (e) {
+          if ((e as NodeJS.ErrnoException).code !== 'EEXIST') throw e
+          return false
+        } finally {
+          await fs.rm(temporario, { force: true })
+        }
+        return true
+      }
+      return false
     },
 
     async contarHoje() {

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { pintar } from '../src/api'
+import { enviarMoldura, pintar } from '../src/api'
 
 /** XMLHttpRequest de mentira: o teste decide quando o envio termina e quando a resposta chega. */
 class XhrFalso {
@@ -84,8 +84,8 @@ describe('pintar (tempos limite e erros de rede)', () => {
     const imagem = new Blob(['pintura'], { type: 'image/jpeg' })
     const r = pintar(dados, { tempoEnvioMs: 1000, tempoTotalMs: 1000 })
     XhrFalso.ultimo.terminarEnvio()
-    XhrFalso.ultimo.responder(200, imagem, { 'x-codigo-obra': 'K7M-3PX' })
-    await expect(r).resolves.toEqual({ imagem, codigo: 'K7M-3PX' })
+    XhrFalso.ultimo.responder(200, imagem, { 'x-codigo-obra': 'K7M-3PX', 'x-chave-moldura': 'ab12' })
+    await expect(r).resolves.toEqual({ imagem, codigo: 'K7M-3PX', chaveMoldura: 'ab12' })
   })
 
   it('resposta de erro usa o JSON do servidor', async () => {
@@ -93,5 +93,35 @@ describe('pintar (tempos limite e erros de rede)', () => {
     const r = pintar(dados, { tempoEnvioMs: 1000, tempoTotalMs: 1000 })
     XhrFalso.ultimo.responder(429, new Blob(['{"erro":"TETO_DIARIO","mensagem":"A pintora foi descansar. Volte amanhã!"}']))
     await expect(r).rejects.toMatchObject({ codigo: 'TETO_DIARIO', message: 'A pintora foi descansar. Volte amanhã!' })
+  })
+})
+
+describe('enviarMoldura', () => {
+  const moldura = new Blob(['moldura'], { type: 'image/jpeg' })
+
+  it('manda código, chave e a imagem para /api/moldura', async () => {
+    const buscar = vi.fn(async (_url: string, _init: RequestInit) => new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', buscar)
+    await expect(enviarMoldura({ codigo: 'K7M-3PX', chave: 'ab12', moldura })).resolves.toBe(true)
+    const [url, init] = buscar.mock.calls[0]
+    expect(url).toBe('/api/moldura')
+    expect(init.method).toBe('POST')
+    const form = init.body as FormData
+    expect([form.get('codigo'), form.get('chave')]).toEqual(['K7M-3PX', 'ab12'])
+    expect(form.get('moldura')).toBeInstanceOf(Blob)
+  })
+
+  it('tenta de novo uma vez quando a rede falha', async () => {
+    const buscar = vi.fn().mockRejectedValueOnce(new TypeError('rede')).mockResolvedValueOnce(new Response(null, { status: 204 }))
+    vi.stubGlobal('fetch', buscar)
+    await expect(enviarMoldura({ codigo: 'K7M-3PX', chave: 'ab12', moldura }, { esperaMs: 1 })).resolves.toBe(true)
+    expect(buscar).toHaveBeenCalledTimes(2)
+  })
+
+  it('não lança erro: recusa do servidor ou rede fora viram false', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 403 })))
+    await expect(enviarMoldura({ codigo: 'K7M-3PX', chave: 'x', moldura })).resolves.toBe(false)
+    vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new TypeError('rede')))
+    await expect(enviarMoldura({ codigo: 'K7M-3PX', chave: 'x', moldura }, { esperaMs: 1 })).resolves.toBe(false)
   })
 })

@@ -185,12 +185,13 @@ dados/acervo/
     K7M-3PX/
       original.jpg   ← foto real (já reencodada, sem metadados)
       pintura.jpg    ← imagem alterada, sem moldura
+      moldura.jpg    ← a pintura na moldura do estilo, como o visitante recebe
       info.json
 ```
 
 - `info.json`: `codigo`, `criadoEm`, `estiloId`, `estiloNome`, `provedor`, `modelo`, `termosVersao`, `aceiteEm`. O IP não é guardado.
 - Código da obra: 6 caracteres no formato `XXX-XXX`, sorteados de um alfabeto sem caracteres ambíguos (sem `0`, `O`, `1`, `I`, `L`). Se já existir pasta com o código, sorteia outro.
-- A versão com moldura não é guardada; pode ser recomposta a partir de `pintura.jpg`.
+- A versão com moldura é composta no celular e enviada em segundo plano para `POST /api/moldura` (decisão do usuário em 2026-11-13). A resposta da pintura traz `X-Chave-Moldura`, uma chave de uso único válida por 30 minutos, guardada só na memória do pintor: só quem recebeu a pintura grava a moldura daquela obra, e uma vez só. Se o envio falhar ou o pintor reiniciar no meio, a obra fica sem `moldura.jpg`. As obras gravadas antes dessa mudança ficam sem moldura.
 - Localizar ou excluir uma obra a pedido: procurar `dados/acervo/*/<código>` e apagar a pasta.
 
 ### 6.2 Termos e consentimento
