@@ -650,18 +650,21 @@ function desenharPlaca(ctx: Ctx, g: Geometria, d: Desenho, logo: HTMLImageElemen
   const alturaLogo = r.h * 0.8
   const larguraLogo = alturaLogo * (logo.naturalWidth / logo.naturalHeight)
   const folga = r.h * 0.2
-  const { titulo, subtitulo } = CONFIG.moldura
+  const { titulo, subtitulo, autores } = CONFIG.moldura
   const sub = subtitulo.toUpperCase()
-  let tamTitulo = r.h * 0.27
-  let tamSub = r.h * 0.17
+  let tamTitulo = r.h * 0.25
+  let tamSub = r.h * 0.14
+  let tamAutores = r.h * 0.14
   const medir = () => {
     ctx.font = `700 ${tamTitulo}px ${d.placa.fonte}`
     const a = ctx.measureText(titulo).width
     ctx.font = `400 ${tamSub}px ${d.placa.fonte}`
     ctx.letterSpacing = `${tamSub * 0.3}px`
     const b = ctx.measureText(sub).width
+    ctx.font = `italic 400 ${tamAutores}px ${d.placa.fonte}`
     ctx.letterSpacing = '0px'
-    return Math.max(a, b)
+    const c = ctx.measureText(autores).width
+    return Math.max(a, b, c)
   }
   const maxTexto = r.w - larguraLogo - folga * 3
   let larguraTexto = medir()
@@ -669,30 +672,36 @@ function desenharPlaca(ctx: Ctx, g: Geometria, d: Desenho, logo: HTMLImageElemen
     const f = maxTexto / larguraTexto
     tamTitulo *= f
     tamSub *= f
+    tamAutores *= f
     larguraTexto = medir()
   }
   const x0 = r.x + (r.w - (larguraLogo + folga + larguraTexto)) / 2
   ctx.drawImage(logo, x0, r.y + (r.h - alturaLogo) / 2, larguraLogo, alturaLogo)
 
   const xt = x0 + larguraLogo + folga
+  // Cada linha centrada na coluna de texto.
+  const xc = xt + larguraTexto / 2
   ctx.textAlign = 'left'
   ctx.textBaseline = 'alphabetic'
-  const escrever = (texto: string, peso: number, tam: number, y: number, espaco: number) => {
+  const escrever = (texto: string, peso: string, tam: number, y: number, espaco: number) => {
     ctx.font = `${peso} ${tam}px ${d.placa.fonte}`
     ctx.letterSpacing = `${espaco}px`
+    // O letterSpacing soma um espaço depois da última letra; tira para centrar de verdade.
+    const x = xc - (ctx.measureText(texto).width - espaco) / 2
     if (d.placa.gravado) {
       ctx.fillStyle = d.placa.gravado
-      ctx.fillText(texto, xt, y + Math.max(1, tam * 0.06))
+      ctx.fillText(texto, x, y + Math.max(1, tam * 0.06))
     }
     ctx.fillStyle = d.placa.texto
-    ctx.fillText(texto, xt, y)
+    ctx.fillText(texto, x, y)
   }
   const meio = r.y + r.h / 2
-  escrever(titulo, 700, tamTitulo, meio - r.h * 0.02, 0)
-  // Filete entre as linhas.
+  escrever(titulo, '700', tamTitulo, meio - r.h * 0.08, 0)
+  // Filete entre o título e as linhas de baixo.
   ctx.fillStyle = d.placa.borda
-  ctx.fillRect(xt, meio + r.h * 0.06, larguraTexto, Math.max(1, r.h * 0.012))
-  escrever(sub, 400, tamSub, meio + r.h * 0.28, tamSub * 0.3)
+  ctx.fillRect(xt, meio - r.h * 0.01, larguraTexto, Math.max(1, r.h * 0.012))
+  escrever(sub, '400', tamSub, meio + r.h * 0.17, tamSub * 0.3)
+  escrever(autores, 'italic 400', tamAutores, meio + r.h * 0.35, 0)
   ctx.letterSpacing = '0px'
 }
 
