@@ -3,6 +3,6 @@ export const CONFIG: { escola: string; emailContato: string; moldura: { titulo: 
   escola: 'PREENCHER',
   emailContato: 'PREENCHER',
   /** Texto da plaqueta da moldura, ao lado da logo da escola. */
-  moldura: { titulo: 'Feira de Ciências CTPM', subtitulo: 'Araguari 2026', autores: 'Lucas Cordeiro / Lorrayne Andrade' },
+  moldura: { titulo: 'Feira de Ciências CTPM', subtitulo: 'Araguari 2026', autores: 'Profs. Lucas Cordeiro / Lorrayne Andrade' },
   termosVersao: 'v1',
 }
