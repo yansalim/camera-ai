@@ -245,11 +245,12 @@ describe('POST /api/pintar', () => {
   })
 
   it('falha ao gravar o acervo ainda entrega a pintura', async () => {
-    const acervo: Acervo = { gravar: async () => { throw new Error('disco cheio') }, contarHoje: async () => 0 }
+    const acervo: Acervo = { gravar: async () => { throw new Error('disco cheio') }, contarHoje: async () => 0, gravarMoldura: async () => false }
     const r = await pintar(await preparar({ acervo }))
     expect(r.statusCode).toBe(200)
     expect(r.headers['content-type']).toBe('image/jpeg')
     expect(r.headers['x-codigo-obra']).toBeUndefined()
+    expect(r.headers['x-chave-moldura']).toBeUndefined()
   })
 
   it('saída PNG da IA vira JPEG', async () => {

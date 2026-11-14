@@ -19,6 +19,15 @@ export function lerInfoDoAcervo(dir: string, codigo: string): Record<string, unk
   throw new Error(`Obra ${codigo} não está em ${dir}`)
 }
 
+/** Arquivos da pasta da obra no acervo, em ordem alfabética (lista vazia se a obra não existe). */
+export function arquivosDaObra(dir: string, codigo: string): string[] {
+  for (const dia of fs.readdirSync(dir)) {
+    const pasta = path.join(dir, dia, codigo)
+    if (fs.existsSync(pasta)) return fs.readdirSync(pasta).sort()
+  }
+  return []
+}
+
 /** Câmera simulada: um canvas animado no lugar da câmera frontal (o navegador de teste não tem câmera). */
 export async function simularCamera(page: Page): Promise<void> {
   await page.addInitScript(() => {

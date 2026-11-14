@@ -1,5 +1,5 @@
 import { devices, expect, type Page, test } from '@playwright/test'
-import { aceitarEEscolher, lerInfoDoAcervo, simularCamera, tirarFoto } from './ajudantes'
+import { aceitarEEscolher, arquivosDaObra, lerInfoDoAcervo, simularCamera, tirarFoto } from './ajudantes'
 
 test.beforeEach(({ page }) => simularCamera(page))
 
@@ -31,6 +31,8 @@ test.describe('com a câmera', () => {
     const codigo = (await page.getByTestId('codigo-obra').textContent())!.replace('Código da obra: ', '')
     expect(codigo).toMatch(CODIGO)
     expect(lerInfoDoAcervo('e2e/.acervo', codigo)).toMatchObject({ estiloId: ESTILO, termosVersao: 'v1' })
+    // A versão com moldura chega ao acervo logo depois, em segundo plano.
+    await expect.poll(() => arquivosDaObra('e2e/.acervo', codigo), { timeout: 10_000 }).toEqual(['info.json', 'moldura.jpg', 'original.jpg', 'pintura.jpg'])
   })
 
   test('alternar para "Só a pintura" troca a imagem', async ({ page }) => {

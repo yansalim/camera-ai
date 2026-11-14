@@ -11,6 +11,8 @@ export interface EstiloPublico {
 export interface ResultadoPintura {
   imagem: Blob
   codigo: string | null
+  /** Chave de uso único para mandar a moldura desta obra ao acervo. */
+  chaveMoldura: string | null
 }
 
 export class ErroPintura extends Error {
@@ -90,7 +92,11 @@ export function pintar(
     xhr.addEventListener('error', () => fim(() => rejeitar(semInternet())))
     xhr.addEventListener('load', () => {
       if (xhr.status === 200) {
-        fim(() => resolver({ imagem: xhr.response as Blob, codigo: xhr.getResponseHeader('X-Codigo-Obra') }))
+        fim(() => resolver({
+            imagem: xhr.response as Blob,
+            codigo: xhr.getResponseHeader('X-Codigo-Obra'),
+            chaveMoldura: xhr.getResponseHeader('X-Chave-Moldura'),
+          }))
       } else {
         ;(xhr.response as Blob)
           .text()
@@ -101,4 +107,24 @@ export function pintar(
     timers.push(window.setTimeout(estourar, tempoEnvioMs), window.setTimeout(estourar, tempoTotalMs))
     xhr.send(form)
   })
+}
+
+/**
+ * Guarda no acervo a pintura já na moldura (composta aqui no celular), junto da original e da pintura.
+ * Roda em segundo plano: o visitante nunca espera nem vê erro por causa dela. Tenta mais uma vez se a rede falhar.
+ */
+export async function enviarMoldura(d: { codigo: string; chave: string; moldura: Blob }, o: { esperaMs?: number } = {}): Promise<boolean> {
+  const form = new FormData()
+  form.append('codigo', d.codigo)
+  form.append('chave', d.chave)
+  form.append('moldura', d.moldura, 'moldura.jpg')
+  for (let tentativa = 0; tentativa < 2; tentativa++) {
+    try {
+      const r = await fetch('/api/moldura', { method: 'POST', body: form })
+      return r.ok
+    } catch {
+      await new Promise(r => setTimeout(r, o.esperaMs ?? 3000))
+    }
+  }
+  return false
 }

@@ -1,5 +1,5 @@
 import { lerAceite, obterIdAparelho } from '../aceite'
-import { ErroPintura, pintar } from '../api'
+import { enviarMoldura, ErroPintura, pintar } from '../api'
 import { h } from '../dom'
 import { abrirImagem } from '../foto'
 import { comporMoldura } from '../moldura'
@@ -141,6 +141,8 @@ export async function montarRevelacao(raiz: HTMLElement, opcoes: { pedir?: boole
   try {
     const resultado = await pintar({ foto, estiloId: estilo.id, aceite, idAparelho: obterIdAparelho() })
     const comMoldura = await comporMoldura(resultado.imagem, estilo.id)
+    // O acervo guarda também a versão com moldura; vai em segundo plano, sem segurar a revelação.
+    if (resultado.codigo && resultado.chaveMoldura) void enviarMoldura({ codigo: resultado.codigo, chave: resultado.chaveMoldura, moldura: comMoldura })
     const falta = DURACAO_MINIMA_MS - (performance.now() - inicio)
     if (falta > 0) await esperar(falta)
     estado.resultado = resultado

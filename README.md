@@ -111,7 +111,7 @@ Todos os provedores implementam a mesma interface, `pintar(foto, estilo): Promis
 
 ### Acervo
 
-Cada pintura bem-sucedida é gravada em `dados/acervo/AAAA-MM-DD/<código>/` com `original.jpg`, `pintura.jpg` e `info.json` (estilo, provedor, modelo e data). O código da obra tem o formato `XXX-XXX`, sem caracteres ambíguos. A pasta `dados/` não é servida por HTTP nem versionada.
+Cada pintura bem-sucedida é gravada em `dados/acervo/AAAA-MM-DD/<código>/` com `original.jpg`, `pintura.jpg`, `moldura.jpg` (a pintura na moldura, enviada pelo celular logo depois) e `info.json` (estilo, provedor, modelo e data). O código da obra tem o formato `XXX-XXX`, sem caracteres ambíguos. A pasta `dados/` não é servida por HTTP nem versionada.
 
 ## Estrutura do repositório
 

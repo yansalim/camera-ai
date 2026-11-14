@@ -9,6 +9,7 @@ export type CodigoErro =
   | 'RECUSADA'
   | 'IA_INDISPONIVEL'
   | 'TEMPO_ESGOTADO'
+  | 'MOLDURA_RECUSADA'
 
 const CALMA = 'Calma, artista! Espere alguns minutinhos para pintar de novo.'
 
@@ -24,6 +25,8 @@ export const ERROS: Record<CodigoErro, { status: number; mensagem: string }> = {
   RECUSADA: { status: 422, mensagem: 'Não consegui pintar essa foto. Que tal tentar outra?' },
   IA_INDISPONIVEL: { status: 502, mensagem: 'A pintora está com dificuldades. Tente de novo.' },
   TEMPO_ESGOTADO: { status: 504, mensagem: 'Demorou mais que o normal. Tente de novo.' },
+  // Envio da moldura para o acervo: o visitante não vê este erro (o site envia em segundo plano).
+  MOLDURA_RECUSADA: { status: 403, mensagem: 'Moldura não aceita para esta obra.' },
 }
 
 /** Erro que vira resposta JSON { erro, mensagem } com o status da tabela. */
